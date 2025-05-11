@@ -1,22 +1,17 @@
 package xauth.api
 
+import xauth.api.model.info.Info
+import xauth.generated.BuildInfo
 import zio.*
 import zio.http.*
 import zio.http.Method.GET
 import zio.http.codec.*
 import zio.http.endpoint.*
-import xauth.generated.BuildInfo
 import zio.json.*
 import zio.schema.*
 import zio.schema.Schema.*
 
 object Main extends ZIOAppDefault:
-
-  case class Info(name: String, version: String, builtAt: String)
-
-  private object Info:
-    given schema: Schema[Info] = DeriveSchema.gen[Info]
-    given encoder: JsonEncoder[Info] = DeriveJsonEncoder.gen[Info]
 
   private val infoEndpoint = Endpoint(GET / "info").out[Info]
 

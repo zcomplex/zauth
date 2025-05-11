@@ -1,6 +1,6 @@
 import java.text.SimpleDateFormat
 
-name := "xauth"
+moduleName := "xauth"
 organization := "xauth"
 organizationName := "X-Auth"
 
@@ -12,9 +12,16 @@ val patch = 0
 
 def ver(patch: Int = patch) = s"$major.$minor.$patch"
 
+val ZioSchema     = "dev.zio" %% "zio-schema"      % "1.7.0"
+val ZioSchemaJson = "dev.zio" %% "zio-schema-json" % "1.7.0"
+
 lazy val settings = Seq(
   scalaVersion := scala3Version,
-  libraryDependencies += "org.scalameta" %% "munit" % "1.1.1" % Test
+  libraryDependencies ++= Seq(
+    ZioSchema,
+    "dev.zio" %% "zio" % "2.1.17",
+    "org.scalameta" %% "munit" % "1.1.1" % Test
+  )
 )
 
 def buildInfoTask(dir: String) =
@@ -30,18 +37,50 @@ def buildInfoTask(dir: String) =
     Seq(file)
   }.taskValue
 
+// Project modules definitions
+
+def module(id: String) = s"xauth-$id"
+
+val Core: String = module("core")
+val ApiModel: String = module("api-model")
+
+// xauth-core-model
+// xauth-core
+
+// xauth-api-model
+// xauth-api
+
+lazy val xauthCore = project
+  .in(file(Core))
+  .settings(buildInfoTask(Core))
+  .settings(settings)
+  .settings(
+    name := Core,
+    version := ver(0)
+  )
+
+lazy val xauthApiModel = project
+  .in(file(ApiModel))
+  .settings(buildInfoTask(ApiModel))
+  .settings(settings)
+  .settings(
+    name := ApiModel,
+    version := ver(0),
+    libraryDependencies ++= Seq(/*ZioSchema, */ZioSchemaJson)
+  )
+
 lazy val xauthApi = project
   .in(file("xauth-api"))
+  .dependsOn(xauthApiModel)
   .settings(buildInfoTask("xauth-api"))
   .settings(settings)
   .settings(
     name := "xauth-api",
     version := ver(0),
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % "2.1.17",
       "dev.zio" %% "zio-http" % "3.2.0",
-      "dev.zio" %% "zio-schema" % "1.7.0",
-      "dev.zio" %% "zio-schema-json" % "1.7.0"
+      ZioSchema,
+      ZioSchemaJson
     )
   )
 
@@ -55,7 +94,7 @@ lazy val xauthCli = project
 
 lazy val root = project
   .in(file("."))
-  .aggregate(xauthApi, xauthCli)
+  .aggregate(xauthCore, xauthApiModel, xauthApi, xauthCli)
   .settings(settings)
   .settings(
     name := "xauth",
