@@ -30,3 +30,6 @@ metals.sbt
 .idea
 .idea_modules
 /.worksheet/
+
+# Produced by the build.sh script on the same folder
+/docker/images/mongodb-auth/keyfile

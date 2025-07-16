@@ -1,0 +1,42 @@
+services:
+
+  mongodb:
+    image: mongodb-auth:latest
+    container_name: "xauth.system"
+    environment:
+      APP_DATABASE: xauth
+      APP_USERNAME: u_xauth
+      APP_PASSWORD: p_xauth
+    ports:
+      - "27017:27017"
+    volumes:
+      - db:/data/db
+
+#  mongodb1:
+#    image: mongodb-auth:latest
+#    container_name: "xauth.workspace-1"
+#    environment:
+#      APP_DATABASE: xauth_workspace-1
+#      APP_USERNAME: u_xauth_workspace-1
+#      APP_PASSWORD: p_xauth_workspace-1
+#    ports:
+#      - "27018:27017"
+#    volumes:
+#      - db-w1:/data/db
+
+volumes:
+  db:
+    name: xauth.system_db
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/docker/volumes/dev/xauth.system_db/
+
+#  db-w1:
+#    name: xauth.workspace-1_db
+#    driver: local
+#    driver_opts:
+#      type: none
+#      o: bind
+#      device: /data/docker/volumes/dev/xauth.workspace-1_db/

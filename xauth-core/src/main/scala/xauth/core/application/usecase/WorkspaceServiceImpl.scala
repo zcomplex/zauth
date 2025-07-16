@@ -1,0 +1,130 @@
+package xauth.core.application.usecase
+
+import xauth.core.application.usecase.WorkspaceServiceImpl.{copyKeyGenerator, generateKeyPair}
+import xauth.core.domain.configuration.model.Configuration
+import xauth.core.domain.workspace.model.WorkspaceStatus.Enabled
+import xauth.core.domain.workspace.model.{Workspace, WorkspaceConfiguration, WorkspaceInit}
+import xauth.core.domain.workspace.port.{WorkspaceRepository, WorkspaceService}
+import xauth.util.Uuid
+import xauth.util.time.ZonedDate
+import zio.{Task, URLayer, ZIO, ZLayer}
+
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.nio.file.{Files, Path, Paths}
+
+class WorkspaceServiceImpl(repository: WorkspaceRepository, conf: Configuration) extends WorkspaceService:
+
+  override def findById(id: Uuid): Task[Option[Workspace]] =
+    repository.find(id)
+
+  override def findBySlug(slug: String): Task[Option[Workspace]] =
+    repository.findBySlug(slug)
+
+  /** Retrieves all configured workspaces. */
+  override def findAll: Task[Seq[Workspace]] =
+    repository.findAll
+
+  /** Creates system default workspace. */
+  override def createSystemWorkspace(applications: Seq[String]): Task[Workspace] =
+
+    val date = ZonedDate.now
+
+    val workspace = Workspace(
+      id = Uuid.Zero,
+      tenantId = Uuid.Zero,
+      slug = "root",
+      description = "system default",
+      status = Enabled,
+      configuration = conf.init.workspace,
+      registeredAt = date,
+      updatedAt = date
+    )
+
+    for
+      // writing system default workspace
+      w <- repository.save(workspace)
+      // configuring indexes
+      _ <- repository.configureIndexes(using workspace)
+      // copying keygen
+      _ <- copyKeyGenerator(using conf)
+      // generating system workspace key pair
+      _ <- generateKeyPair(using workspace, conf)
+    yield w
+
+  /** Creates new workspace. */
+  override def create(tenantId: Uuid, slug: String, desc: String, conf: WorkspaceConfiguration, init: WorkspaceInit): Task[Workspace] = ???
+
+  /** Updates the given workspace. */
+  override def update(w: Workspace): Task[Workspace] = ???
+
+object WorkspaceServiceImpl:
+
+  import scala.sys.process.*
+
+  lazy val layer: URLayer[Configuration & WorkspaceRepository, WorkspaceServiceImpl] =
+    ZLayer.fromZIO:
+      for
+        c <- ZIO.service[Configuration]
+        r <- ZIO.service[WorkspaceRepository]
+      yield
+        new WorkspaceServiceImpl(r, c)
+
+  def copyKeyGenerator(using c: Configuration): Task[Unit] =
+    for
+      // base configuration path
+      confPath <- ZIO attempt Paths.get(c.confPath)
+      // key pairs generation script path
+      srcKeygenPath <- ZIO attempt:
+        Paths
+          .get(".")
+          .resolve("script")
+          .resolve("keygen.sh")
+      // key pairs generation script path
+      dstKeygenPath <- ZIO attempt:
+        confPath
+          .resolve("script")
+          .resolve("keygen.sh")
+      _ <- ZIO
+        .attempt:
+          // <key-path>/script/
+          Files.createDirectories(dstKeygenPath)
+        .tapError:
+          t => ZIO logError s"unable to create the script path: ${t.getMessage}"
+      // copying
+      _ <- ZIO
+        .attempt:
+          if Files.exists(dstKeygenPath) then Files.copy(srcKeygenPath, dstKeygenPath, REPLACE_EXISTING)
+    yield ()
+
+  def generateKeyPair(using w: Workspace, c: Configuration): Task[Path] =
+    for
+      // base configuration path
+      path          <- ZIO attempt Paths.get(c.confPath)
+      // specific workspace path for key pairs storing
+      workspacePath <- ZIO attempt:
+        path
+          .resolve("keys")
+          .resolve(w.id.stringValue)
+      // key pairs generation script path
+      keygenPath    <- ZIO attempt:
+        path
+          .resolve("script")
+          .resolve("keygen.sh")
+
+      _ <- ZIO
+        .attempt:
+          // <key-path>/keys/<workspace-id>/
+          Files.createDirectories(workspacePath)
+        .tapError:
+          t => ZIO logError s"unable to create the key path for workspace ${w.id.stringValue}: ${t.getMessage}"
+
+      _ <- ZIO
+        .attempt:
+          // creating private/public key pair by bash script
+          s"${keygenPath.toString} -n ${w.id.stringValue} -p ${workspacePath.toString}".!
+
+        .flatMap:
+          case 0 => ZIO logInfo  s"keypair generated for workspace ${w.id.stringValue}"
+          case _ => ZIO logError s"errors during keypair generation for workspace ${w.id.stringValue}"
+
+    yield workspacePath

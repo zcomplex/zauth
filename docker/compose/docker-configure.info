@@ -1,0 +1,2 @@
+# Volume creation
+docker volume create --driver local --opt type=none --opt o=bind --opt device=/data/docker/volumes/dev-xauth-api_db dev-xauth-api_db
