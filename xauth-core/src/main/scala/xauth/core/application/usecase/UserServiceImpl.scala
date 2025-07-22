@@ -1,16 +1,18 @@
 package xauth.core.application.usecase
 
+import com.lambdaworks.crypto.SCryptUtil.*
+import xauth.core.common.model.AuthStatus.Disabled
 import xauth.core.common.model.{AuthRole, AuthStatus}
 import xauth.core.domain.user.model.{AppInfo, User, UserInfo}
 import xauth.core.domain.user.port.{UserRepository, UserService}
 import xauth.core.domain.workspace.model.Workspace
+import xauth.core.spi.MessagingService
 import xauth.util.Uuid
-import com.lambdaworks.crypto.SCryptUtil.*
-import zio.{Task, URLayer, ZIO, ZLayer}
 import xauth.util.ext.random
 import xauth.util.time.ZonedDate
+import zio.{Task, URLayer, ZIO, ZLayer}
 
-class UserServiceImpl(repository: UserRepository) extends UserService:
+class UserServiceImpl(repository: UserRepository, messaging: MessagingService) extends UserService:
 
   /**
    * Creates new user for the given workspace.
@@ -43,8 +45,12 @@ class UserServiceImpl(repository: UserRepository) extends UserService:
       updatedAt = now
     )
 
-    repository save user
-    // todo: status !enabled: trust account >> async message dispatch
+    for
+      u <- repository save user
+      _ <- ZIO.when(user.status == Disabled):
+        messaging.sendActivationMessage(u).forkDaemon
+          *> messaging.notifyUserRegistration(u).forkDaemon
+    yield u
 
   private def cryptWithSalt(s: String): (salt: String, hash: String) =
     val salt = (('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')).random(79)
@@ -64,7 +70,9 @@ class UserServiceImpl(repository: UserRepository) extends UserService:
 
 object UserServiceImpl:
 
-  lazy val layer: URLayer[UserRepository, UserServiceImpl] =
+  val layer: URLayer[UserRepository & MessagingService, UserServiceImpl] =
     ZLayer.fromZIO:
-      ZIO.service[UserRepository] map:
-        new UserServiceImpl(_)
+      for
+        repository <- ZIO.service[UserRepository]
+        messaging <- ZIO.service[MessagingService]
+      yield new UserServiceImpl(repository, messaging)

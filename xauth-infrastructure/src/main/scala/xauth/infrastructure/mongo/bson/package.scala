@@ -1,6 +1,7 @@
 package xauth.infrastructure.mongo
 
-import reactivemongo.api.bson.{BSONDateTime, BSONDocument, BSONHandler, BSONString, BSONValue}
+import io.circe.{Json, JsonObject}
+import reactivemongo.api.bson.{BSONArray, BSONBoolean, BSONDateTime, BSONDocument, BSONDouble, BSONHandler, BSONInteger, BSONLong, BSONNull, BSONString, BSONValue}
 import xauth.util.DataFormat.iso8601DateFormat
 import xauth.util.Uuid
 import xauth.util.ext.{toEpochMilli, toEpochTime}
@@ -87,6 +88,8 @@ package object bson:
       override def writeTry(l: Locale): Try[BSONValue] =
         Success(BSONString(s"${l.getLanguage}-${l.getCountry}"))
 
+
+
   object ext:
 
     extension (b: BSONDocument)
@@ -115,3 +118,35 @@ package object bson:
     extension (i: ZonedDateTimeInterval)
       def toBson: BSONDocument =
         BSONDocument("start" -> i.start.toBson, "end" -> i.end.toBson)
+
+    extension (j: Json)
+      def toBson: BSONValue = j.fold(
+        jsonNull = BSONNull,
+        jsonBoolean = b => BSONBoolean(b),
+        jsonNumber = n => n
+          .toBigDecimal
+          .flatMap(d =>
+            if d.isValidInt then Some(BSONInteger(d.intValue))
+            else if d.isValidLong then Some(BSONLong(d.longValue))
+            else Some(BSONDouble(d.doubleValue))
+          )
+          .getOrElse(BSONDouble(n.toDouble)),
+        jsonString = str => BSONString(str),
+        jsonArray = arr => BSONArray(arr.map(_.toBson)),
+        jsonObject = obj => BSONDocument(obj.toMap.view.mapValues(_.toBson).toMap)
+      )
+
+    extension (b: BSONValue)
+      def toJson: Json = b match
+        case BSONNull        => Json.Null
+        case BSONBoolean(b)  => Json.fromBoolean(b)
+        case BSONInteger(i)  => Json.fromInt(i)
+        case BSONLong(l)     => Json.fromLong(l)
+        case BSONDouble(d)   => Json.fromDoubleOrNull(d)
+        case BSONString(s)   => Json.fromString(s)
+        case BSONArray(a)    => Json.fromValues(a.map(_.toJson))
+        case d: BSONDocument =>
+          Json.fromJsonObject:
+            JsonObject.fromMap:
+              d.elements.map { e => e.name -> e.value.toJson }.toMap
+        case o => throw new RuntimeException(s"unsupported bson: $o")

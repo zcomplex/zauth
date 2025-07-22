@@ -1,13 +1,16 @@
 package xauth.infrastructure.workspace
 
+import io.circe.Json
 import reactivemongo.api.bson.*
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, ReadPreference}
 import xauth.core.domain.workspace.model.*
+import xauth.core.domain.workspace.model.ProviderConf.PConf
 import xauth.core.domain.workspace.port.WorkspaceRepository
 import xauth.infrastructure.mongo.SystemCollection.Workspace as WorkspaceC
 import xauth.infrastructure.mongo.WorkspaceCollection.{Invitation, User}
+import xauth.infrastructure.mongo.bson.ext.{toBson, toJson}
 import xauth.infrastructure.mongo.bson.handler.given
 import xauth.infrastructure.mongo.{DefaultMongoClient, WorkspaceCollection}
 import xauth.infrastructure.workspace.WorkspaceDo.*
@@ -31,6 +34,24 @@ class MongoWorkspaceRepository(mongo: DefaultMongoClient) extends WorkspaceRepos
 
   private given databaseConfBsonHandler: BSONDocumentHandler[DatabaseConf] = Macros.handler[DatabaseConf]
   private given frontEndConfigurationBsonHandler: BSONDocumentHandler[FrontEndConfiguration] = Macros.handler[FrontEndConfiguration]
+
+  private given providerConfiguration2BsonHandler: BSONDocumentHandler[PConf] = new BSONDocumentHandler[PConf]:
+    override def readDocument(b: BSONDocument): Try[PConf] =
+      b.asTry[BSONDocument] map:
+        _.elements
+          .collect:
+            e => e.name -> e.value.toJson
+          .toMap
+
+    override def writeTry(c: PConf): Try[BSONDocument] =
+      Success:
+        BSONDocument:
+          c.collect:
+            case (k, v: Json) => k -> v.toBson
+
+  private given providerConfigurationBsonHandler: BSONDocumentHandler[ProviderConf] = Macros.handler[ProviderConf]
+  private given messagingConfigurationBsonHandler: BSONDocumentHandler[MessagingConf] = Macros.handler[MessagingConf]
+
   private given mailConfigurationBsonHandler: BSONDocumentHandler[MailConfiguration] = Macros.handler[MailConfiguration]
   private given jwtBsonHandler: BSONDocumentHandler[Jwt] = Macros.handler[Jwt]
 
@@ -122,7 +143,7 @@ class MongoWorkspaceRepository(mongo: DefaultMongoClient) extends WorkspaceRepos
 
 object MongoWorkspaceRepository:
   
-  lazy val layer: URLayer[DefaultMongoClient, WorkspaceRepository] =
+  val layer: URLayer[DefaultMongoClient, WorkspaceRepository] =
     ZLayer.fromZIO:
       ZIO.service[DefaultMongoClient] map:
         new MongoWorkspaceRepository(_)

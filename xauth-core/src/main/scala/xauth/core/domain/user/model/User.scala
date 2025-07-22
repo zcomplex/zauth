@@ -1,5 +1,6 @@
 package xauth.core.domain.user.model
 
+import xauth.core.common.model.ContactType.*
 import xauth.core.common.model.{AuthRole, AuthStatus, ContactType, Permission}
 import xauth.util.Uuid
 import xauth.util.time.ZonedDate
@@ -45,4 +46,15 @@ case class User
   createdAt: ZonedDate,
   updatedBy: Uuid,
   updatedAt: ZonedDate
-)
+):
+
+  def contact(t: ContactType, trusted: Boolean = true): Option[String] =
+    info.contacts
+      .find(c => c.`type` == t && c.trusted == trusted)
+      .map(_.value)
+
+  def email(trusted: Boolean = true): Option[String] = 
+    contact(Email, trusted)
+
+  def mobileNumber(trusted: Boolean = true): Option[String] =
+    contact(MobileNumber, trusted)

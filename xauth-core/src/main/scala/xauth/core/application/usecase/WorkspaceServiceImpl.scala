@@ -12,7 +12,7 @@ import zio.{Task, URLayer, ZIO, ZLayer}
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.{Files, Path, Paths}
 
-class WorkspaceServiceImpl(repository: WorkspaceRepository, conf: Configuration) extends WorkspaceService:
+class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceRegistry, conf: Configuration) extends WorkspaceService:
 
   override def findById(id: Uuid): Task[Option[Workspace]] =
     repository.find(id)
@@ -42,13 +42,15 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, conf: Configuration)
 
     for
       // writing system default workspace
-      w <- repository.save(workspace)
+      w <- repository save workspace
       // configuring indexes
       _ <- repository.configureIndexes(using workspace)
       // copying keygen
       _ <- copyKeyGenerator(using conf)
       // generating system workspace key pair
       _ <- generateKeyPair(using workspace, conf)
+      // registering just created workspace
+      _ <- registry register w
     yield w
 
   /** Creates new workspace. */
@@ -61,13 +63,14 @@ object WorkspaceServiceImpl:
 
   import scala.sys.process.*
 
-  lazy val layer: URLayer[Configuration & WorkspaceRepository, WorkspaceServiceImpl] =
+  val layer: URLayer[WorkspaceRegistry & WorkspaceRepository & Configuration, WorkspaceServiceImpl] =
     ZLayer.fromZIO:
       for
-        c <- ZIO.service[Configuration]
         r <- ZIO.service[WorkspaceRepository]
+        g <- ZIO.service[WorkspaceRegistry]
+        c <- ZIO.service[Configuration]
       yield
-        new WorkspaceServiceImpl(r, c)
+        new WorkspaceServiceImpl(r, g, c)
 
   def copyKeyGenerator(using c: Configuration): Task[Unit] =
     for
@@ -85,9 +88,11 @@ object WorkspaceServiceImpl:
           .resolve("script")
           .resolve("keygen.sh")
       _ <- ZIO
-        .attempt:
-          // <key-path>/script/
-          Files.createDirectories(dstKeygenPath)
+        .when(!Files.exists(dstKeygenPath)):
+          ZIO
+            .attempt:
+              // <key-path>/script/
+              Files.createDirectories(dstKeygenPath)
         .tapError:
           t => ZIO logError s"unable to create the script path: ${t.getMessage}"
       // copying

@@ -47,7 +47,7 @@ class TenantServiceImpl(repository: TenantRepository) extends TenantService:
 
 object TenantServiceImpl:
   
-  lazy val layer: URLayer[TenantRepository, TenantServiceImpl] =
+  val layer: URLayer[TenantRepository, TenantServiceImpl] =
     ZLayer.fromZIO:
       ZIO.service[TenantRepository] map:
         new TenantServiceImpl(_)

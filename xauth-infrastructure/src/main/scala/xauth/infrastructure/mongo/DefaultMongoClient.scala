@@ -2,6 +2,7 @@ package xauth.infrastructure.mongo
 
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.{DB, MongoConnection}
+import xauth.core.domain.configuration.model.Configuration
 import xauth.util.Uuid
 import xauth.util.mongo.*
 import zio.*
@@ -41,17 +42,21 @@ class DefaultMongoClient(databases: TMap[Uuid, DB], driver: Driver[MongoConnecti
 object DefaultMongoClient:
 
   /** Creates a client with a connection to the root workspace. */
-  def layer: ZLayer[Driver[MongoConnection, DB], Nothing, DefaultMongoClient] =
+  val layer: ZLayer[Configuration & Driver[MongoConnection, DB], Nothing, DefaultMongoClient] =
 
     val effect = for
-      dbs <- TMap.empty[Uuid, DB].commit
+      cnf    <- ZIO.service[Configuration]
       driver <- ZIO.service[Driver[MongoConnection, DB]]
-    yield new DefaultMongoClient(dbs, driver)
+      dbs    <- TMap.empty[Uuid, DB].commit
+      client <- ZIO succeed new DefaultMongoClient(dbs, driver)
+      // Connecting to the system workspace
+      _      <- client.connect(Uuid.Zero -> cnf.init.workspace.database.uri).orDie
+    yield client
 
     ZLayer.scoped:
       ZIO
         .acquireRelease(effect):
-          c =>ZIO
+          c => ZIO
             .logInfo(s"releasing mongodb connection...") *> c
             .close()
             .catchAll(e => ZIO.logWarning(s"unable to release mongodb client: $e"))

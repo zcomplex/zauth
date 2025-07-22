@@ -23,3 +23,5 @@ trait UserService:
              status: AuthStatus,
              applications: List[AppInfo],
              roles: AuthRole*)(using w: Workspace): Task[User]
+
+//  todo: def create(u: User)(using w: Workspace): Task[User]

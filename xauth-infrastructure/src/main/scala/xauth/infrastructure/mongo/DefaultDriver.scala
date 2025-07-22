@@ -28,7 +28,7 @@ private class DefaultDriver(driver: AsyncDriver) extends Driver[MongoConnection,
         t => MongoError.AccessFailed(t.getMessage)
 
 object DefaultDriver:
-  def layer: ZLayer[Any, Nothing, Driver[MongoConnection, DB]] =
+  val layer: ZLayer[Any, Nothing, Driver[MongoConnection, DB]] =
     ZLayer.fromZIO:
       ZIO
         .attempt(new DefaultDriver(new AsyncDriver))

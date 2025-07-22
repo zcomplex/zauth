@@ -74,7 +74,7 @@ private class MongoSystemSettingRepository(mongo: DefaultMongoClient) extends Sy
 
 object MongoSystemSettingRepository:
 
-  def layer: ZLayer[DefaultMongoClient, Nothing, SystemSettingRepository] =
+  val layer: ZLayer[DefaultMongoClient, Nothing, SystemSettingRepository] =
     ZLayer.fromZIO:
       ZIO.service[DefaultMongoClient] map:
         mongo => new MongoSystemSettingRepository(mongo)

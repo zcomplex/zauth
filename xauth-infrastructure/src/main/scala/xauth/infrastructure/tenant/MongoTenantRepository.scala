@@ -80,7 +80,7 @@ class MongoTenantRepository(mongo: DefaultMongoClient) extends TenantRepository:
 
 object MongoTenantRepository:
 
-  lazy val layer: URLayer[DefaultMongoClient, MongoTenantRepository] =
+  val layer: URLayer[DefaultMongoClient, MongoTenantRepository] =
     ZLayer.fromZIO:
       ZIO.service[DefaultMongoClient] map:
         mongo => new MongoTenantRepository(mongo)

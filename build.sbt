@@ -16,13 +16,18 @@ val ZioSchema     = "dev.zio" %% "zio-schema"      % "1.7.3"
 val ZioSchemaJson = "dev.zio" %% "zio-schema-json" % "1.7.3"
 val ZioLogging    = "dev.zio" %% "zio-logging"     % "2.5.1"
 
+val CirceCore     = "io.circe" %% "circe-core"     % "0.14.14"
+val CirceGeneric  = "io.circe" %% "circe-generic"  % "0.14.14"
+val CirceConfig   = "io.circe" %% "circe-config"   % "0.10.2"
+
 lazy val settings = Seq(
   scalaVersion := scala3Version,
+  scalacOptions += "-Xmax-inlines:128000",
   libraryDependencies ++= Seq(
+    "dev.zio" %% "zio"          % "2.1.20",
+    "dev.zio" %% "zio-test"     % "2.1.20" % Test,
+    "dev.zio" %% "zio-test-sbt" % "2.1.20" % Test,
     ZioSchema,
-    "dev.zio" %% "zio" % "2.1.19",
-    "dev.zio" %% "zio-test" % "2.1.19" % Test,
-    "dev.zio" %% "zio-test-sbt" % "2.1.19" % Test,
     "org.scalameta" %% "munit" % "1.1.1" % Test
   )
 )
@@ -75,7 +80,8 @@ lazy val xauthCore = project
     version := ver(0),
     libraryDependencies ++= Seq(
       // Scrypt implementation for password encryption
-      "com.lambdaworks" % "scrypt" % "1.4.0"
+      "com.lambdaworks" % "scrypt" % "1.4.0",
+      CirceCore
     )
   )
 
@@ -103,6 +109,7 @@ lazy val xauthInfrastructure = project
     name := Infrastructure,
     version := ver(0),
     libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-email" % "1.6.0",
       "org.reactivemongo" %% "reactivemongo" % "1.1.0-RC12", // do not use noshaded
       ZioLogging/*ZioSchema, ZioSchemaJson*/,
       "org.slf4j" % "slf4j-api" % "2.0.17"
@@ -121,13 +128,8 @@ lazy val xauthApi = project
     version := ver(0),
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-http" % "3.3.3",
-      // zio-config
-      "dev.zio" %% "zio-config"          % "4.0.4",
-      "dev.zio" %% "zio-config-typesafe" % "4.0.4",
-      "dev.zio" %% "zio-config-magnolia" % "4.0.4",
-      // -
-      ZioSchema,
-      ZioSchemaJson
+      ZioSchema, ZioSchemaJson,
+      CirceCore, CirceGeneric, CirceConfig
     )
   )
 
