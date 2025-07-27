@@ -1,7 +1,7 @@
 package xauth.infrastructure.workspace
 
 import reactivemongo.api.bson.Macros.Annotations.Key
-import xauth.core.domain.workspace.model.{Workspace, WorkspaceConfiguration, WorkspaceStatus}
+import xauth.core.domain.workspace.model.{Company, Workspace, WorkspaceConf, WorkspaceStatus}
 import xauth.util.Uuid
 import xauth.util.time.ZonedDate
 
@@ -13,8 +13,9 @@ case class WorkspaceDo
   tenantId: Uuid,
   slug: String,
   description: String,
+  company: Company,
   status: WorkspaceStatus,
-  configuration: WorkspaceConfiguration,
+  configuration: WorkspaceConf,
   registeredAt: ZonedDate,
   updatedAt: ZonedDate
 )
@@ -28,6 +29,7 @@ object WorkspaceDo:
         tenantId = w.tenantId,
         slug = w.slug,
         description = w.description,
+        company = w.company,
         status = w.status,
         configuration = w.configuration,
         registeredAt = w.registeredAt,
@@ -41,6 +43,7 @@ object WorkspaceDo:
         tenantId = w.tenantId,
         slug = w.slug,
         description = w.description,
+        company = w.company,
         status = w.status,
         configuration = w.configuration,
         registeredAt = w.registeredAt,

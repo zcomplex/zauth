@@ -28,9 +28,10 @@ object QueuedEmailProvider:
         sigterm <- Promise.make[Nothing, Unit]
         _ <- workers(queue)(using conf, sigterm).forkScoped
         _ <- ZIO.addFinalizer:
-          ZIO.logInfo("shutdown received, draining email queue...") *> sigterm.succeed(())
+          ZIO.logInfo("shutdown, draining email queue...") *> sigterm.succeed(())
       yield new QueuedEmailProvider(conf, queue)
 
+  // todo: read parallelism from configuration
   private def workers(queue: Queue[EmailJob], parallelism: Int = 1)(using c: ProviderConf, sigterm: Promise[Nothing, Unit]): UIO[Unit] =
     ZIO.foreachParDiscard(1 to parallelism)(_ => worker(queue))
     

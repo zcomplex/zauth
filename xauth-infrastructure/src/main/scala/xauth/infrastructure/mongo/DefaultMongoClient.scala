@@ -50,7 +50,7 @@ object DefaultMongoClient:
       dbs    <- TMap.empty[Uuid, DB].commit
       client <- ZIO succeed new DefaultMongoClient(dbs, driver)
       // Connecting to the system workspace
-      _      <- client.connect(Uuid.Zero -> cnf.init.workspace.database.uri).orDie
+      _      <- client.connect(Uuid.Zero -> cnf.init.workspace.configuration.database.uri).orDie
     yield client
 
     ZLayer.scoped:

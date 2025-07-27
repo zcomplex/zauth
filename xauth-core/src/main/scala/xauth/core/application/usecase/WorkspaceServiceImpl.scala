@@ -3,7 +3,7 @@ package xauth.core.application.usecase
 import xauth.core.application.usecase.WorkspaceServiceImpl.{copyKeyGenerator, generateKeyPair}
 import xauth.core.domain.configuration.model.Configuration
 import xauth.core.domain.workspace.model.WorkspaceStatus.Enabled
-import xauth.core.domain.workspace.model.{Workspace, WorkspaceConfiguration, WorkspaceInit}
+import xauth.core.domain.workspace.model.{Company, Workspace, WorkspaceConf, WorkspaceInit}
 import xauth.core.domain.workspace.port.{WorkspaceRepository, WorkspaceService}
 import xauth.util.Uuid
 import xauth.util.time.ZonedDate
@@ -25,17 +25,21 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceR
     repository.findAll
 
   /** Creates system default workspace. */
-  override def createSystemWorkspace(applications: Seq[String]): Task[Workspace] =
+  override def createSystemWorkspace: Task[Workspace] =
 
     val date = ZonedDate.now
 
     val workspace = Workspace(
       id = Uuid.Zero,
       tenantId = Uuid.Zero,
-      slug = "root",
-      description = "system default",
+      slug = conf.init.workspace.slug,
+      description = conf.init.workspace.description,
+      company = Company(
+        name = conf.init.workspace.company.name,
+        description = conf.init.workspace.company.description
+      ),
       status = Enabled,
-      configuration = conf.init.workspace,
+      configuration = conf.init.workspace.configuration,
       registeredAt = date,
       updatedAt = date
     )
@@ -54,7 +58,7 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceR
     yield w
 
   /** Creates new workspace. */
-  override def create(tenantId: Uuid, slug: String, desc: String, conf: WorkspaceConfiguration, init: WorkspaceInit): Task[Workspace] = ???
+  override def create(tenantId: Uuid, slug: String, desc: String, conf: WorkspaceConf, init: WorkspaceInit): Task[Workspace] = ???
 
   /** Updates the given workspace. */
   override def update(w: Workspace): Task[Workspace] = ???

@@ -46,7 +46,7 @@ private class SystemServiceImpl(
           // creating root tenant
           _ <- tenants.createSystemTenant
           // creating root workspace
-          w <- workspaces.createSystemWorkspace(conf.init.workspace.applications)
+          w <- workspaces.createSystemWorkspace
           // configuring first client
           _ <- clients.create(conf.init.client.id, conf.init.client.secret)(using w)
           // configuring system admin user

@@ -1,6 +1,5 @@
 package xauth.infrastructure.client
 
-import reactivemongo.api.bson.{BSONDocumentHandler, Macros}
 import xauth.core.domain.client.model.Client
 import xauth.core.domain.client.port.ClientRepository
 import xauth.core.domain.workspace.model.Workspace
@@ -11,7 +10,7 @@ import zio.{Task, URLayer, ZIO, ZLayer}
 
 class MongoClientRepository(mongo: DefaultMongoClient) extends ClientRepository:
 
-  private given clientBsonHandler: BSONDocumentHandler[ClientDo] = Macros.handler[ClientDo]
+  import bson.handler.given
 
   /** Deletes entity by its identifier. */
   override infix def delete(id: String)(using w: Workspace): Task[Boolean] = ???

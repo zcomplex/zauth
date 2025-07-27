@@ -1,7 +1,7 @@
 package xauth.util.time
 
-import java.time.ZoneOffset.UTC
 import java.time.*
+import java.time.ZoneOffset.UTC
 
 case class ZonedDate(date: ZonedDateTime, zoneId: ZoneId):
   def toOffsetDateTime: OffsetDateTime =
@@ -30,14 +30,14 @@ object ZonedDate:
 
   def now: ZonedDate = now()
 
-  def now(zoneId: ZoneId = UTC): ZonedDate =
-    ZonedDate(ZonedDateTime.now(zoneId), zoneId)
-
-  def from(date: LocalDateTime): ZonedDate =
-    from(date, UTC)
-
   def from(date: LocalDateTime, zoneId: ZoneId = UTC): ZonedDate =
     ZonedDate(date.atZone(zoneId), zoneId)
 
-  def from(date: OffsetDateTime): ZonedDate =
+  infix def now(zoneId: ZoneId = UTC): ZonedDate =
+    ZonedDate(ZonedDateTime.now(zoneId), zoneId)
+
+  infix def from(date: LocalDateTime): ZonedDate =
+    from(date, UTC)
+
+  infix def from(date: OffsetDateTime): ZonedDate =
     from(date.toLocalDateTime)

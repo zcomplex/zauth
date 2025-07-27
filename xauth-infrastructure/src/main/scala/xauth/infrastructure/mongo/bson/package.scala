@@ -2,6 +2,7 @@ package xauth.infrastructure.mongo
 
 import io.circe.{Json, JsonObject}
 import reactivemongo.api.bson.{BSONArray, BSONBoolean, BSONDateTime, BSONDocument, BSONDouble, BSONHandler, BSONInteger, BSONLong, BSONNull, BSONString, BSONValue}
+import xauth.core.common.model.{AuthRole, AuthStatus, ContactType, Permission}
 import xauth.util.DataFormat.iso8601DateFormat
 import xauth.util.Uuid
 import xauth.util.ext.{toEpochMilli, toEpochTime}
@@ -88,7 +89,23 @@ package object bson:
       override def writeTry(l: Locale): Try[BSONValue] =
         Success(BSONString(s"${l.getLanguage}-${l.getCountry}"))
 
+    // xauth.core.common.model
 
+    given contactTypeBsonHandler: BSONHandler[ContactType] = new BSONHandler[ContactType]:
+      override def readTry(b: BSONValue): Try[ContactType] = b.asTry[BSONString] map { s => ContactType.fromValue(s.value) }
+      override def writeTry(s: ContactType): Try[BSONValue] = Success(BSONString(s.value))
+  
+    given authRoleBsonHandler: BSONHandler[AuthRole] = new BSONHandler[AuthRole]:
+      override def readTry(b: BSONValue): Try[AuthRole] = b.asTry[BSONString] map { s => AuthRole.fromValue(s.value) }
+      override def writeTry(s: AuthRole): Try[BSONValue] = Success(BSONString(s.value))
+  
+    given permissionBsonHandler: BSONHandler[Permission] = new BSONHandler[Permission]:
+      override def readTry(b: BSONValue): Try[Permission] = b.asTry[BSONString] map { s => Permission.fromValue(s.value) }
+      override def writeTry(s: Permission): Try[BSONValue] = Success(BSONString(s.value))
+  
+    given authStatusBsonHandler: BSONHandler[AuthStatus] = new BSONHandler[AuthStatus]:
+      override def readTry(b: BSONValue): Try[AuthStatus] = b.asTry[BSONString] map { s => AuthStatus.fromValue(s.value) }
+      override def writeTry(s: AuthStatus): Try[BSONValue] = Success(BSONString(s.value))
 
   object ext:
 

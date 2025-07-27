@@ -17,7 +17,7 @@ case class UserInfo
 /** Defines minimum information of a contact */
 case class UserContact
 (
-  `type`: ContactType,
+  kind: ContactType,
   value: String,
   description: Option[String],
   trusted: Boolean
@@ -50,7 +50,7 @@ case class User
 
   def contact(t: ContactType, trusted: Boolean = true): Option[String] =
     info.contacts
-      .find(c => c.`type` == t && c.trusted == trusted)
+      .find(c => c.kind == t && c.trusted == trusted)
       .map(_.value)
 
   def email(trusted: Boolean = true): Option[String] = 

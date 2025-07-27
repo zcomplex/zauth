@@ -9,9 +9,9 @@ import zio.*
 
 private class ProviderRegistryImpl extends ProviderRegistry:
 
-  override def providers(using w: Workspace): UIO[Set[MessagingProvider]] =
-    ZIO
-      .foreach(w.configuration.messaging.providers.filter(_.active)): p =>
+  override def providers(using w: Workspace): UIO[Set[MessagingProvider]] = 
+    if w.configuration.messaging.enabled then
+      ZIO.foreach(w.configuration.messaging.providers.filter(_.active)): p =>
         p.name match
           case QueuedEmailProvider.Name =>
             QueuedEmailProvider.make(p) map Some.apply
@@ -21,6 +21,7 @@ private class ProviderRegistryImpl extends ProviderRegistry:
             ZIO.succeed(Some(new LoggerSmsProvider))
           case _ => ZIO.none
       .map(_.flatten.toSet)
+    else ZIO succeed Set.empty
 
 object ProviderRegistryImpl:
   val layer: ZLayer[Any, Nothing, ProviderRegistry] =

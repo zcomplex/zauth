@@ -4,6 +4,7 @@ import io.circe.Json
 import xauth.core.domain.workspace.model.ProviderConf.PConf
 
 import java.time.ZoneId
+import java.util.Locale
 
 case class Expiration(accessToken: Int, refreshToken: Int)
 
@@ -11,7 +12,7 @@ case class Encryption(algorithm: String)
 
 case class Jwt(expiration: Expiration, encryption: Encryption)
 
-case class RoutesConfiguration
+case class RoutesConf
 (
   activation: String,
   deletion: String,
@@ -20,12 +21,21 @@ case class RoutesConfiguration
   registrationInvitation: String
 )
 
-case class FrontEndConfiguration(baseUrl: String, routes: RoutesConfiguration)
+case class FrontEndConf(baseUrl: String, routes: RoutesConf)
 
-case class SmtpConfiguration(host: String, port: Int, user: String, pass: String, channel: String, debug: Boolean)
-case class MailConfiguration(from: String, name: String, smtp: SmtpConfiguration)
+case class SmtpConf(host: String, port: Int, user: String, pass: String, channel: String, debug: Boolean)
+case class MailConf(from: String, name: String, smtp: SmtpConf)
 
-case class WorkspaceConfiguration(database: DatabaseConf, frontEnd: FrontEndConfiguration, messaging: MessagingConf, jwt: Jwt, applications: Seq[String], zoneId: ZoneId)
+case class WorkspaceConf
+(
+  locale: Locale,
+  timezone: ZoneId,
+  database: DatabaseConf,
+  jwt: Jwt,
+  messaging: MessagingConf,
+  applications: Seq[String],
+  frontEnd: FrontEndConf
+)
 
 case class DatabaseConf(uri: String)
 

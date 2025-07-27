@@ -1,6 +1,6 @@
 package xauth.core.domain.workspace.port
 
-import xauth.core.domain.workspace.model.{Workspace, WorkspaceConfiguration, WorkspaceInit}
+import xauth.core.domain.workspace.model.{Workspace, WorkspaceConf, WorkspaceInit}
 import xauth.util.Uuid
 import zio.Task
 
@@ -22,10 +22,10 @@ trait WorkspaceService:
   def findAll: Task[Seq[Workspace]]
 
   /** Creates system default workspace. */
-  def createSystemWorkspace(applications: Seq[String]): Task[Workspace]
+  def createSystemWorkspace: Task[Workspace]
 
   /** Creates new workspace. */
-  def create(tenantId: Uuid, slug: String, desc: String, conf: WorkspaceConfiguration, init: WorkspaceInit): Task[Workspace]
+  def create(tenantId: Uuid, slug: String, desc: String, conf: WorkspaceConf, init: WorkspaceInit): Task[Workspace]
 
   /** Updates the given workspace. */
   def update(w: Workspace): Task[Workspace]

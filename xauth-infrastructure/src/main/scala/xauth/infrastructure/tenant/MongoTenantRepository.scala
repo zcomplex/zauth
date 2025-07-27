@@ -6,17 +6,15 @@ import xauth.core.domain.tenant.model.Tenant
 import xauth.core.domain.tenant.port.TenantRepository
 import xauth.infrastructure.mongo.DefaultMongoClient
 import xauth.infrastructure.mongo.SystemCollection.Tenant as TenantC
-import xauth.infrastructure.mongo.bson.handler.given
 import xauth.infrastructure.tenant.TenantDo.*
 import xauth.util.Uuid
 import xauth.util.pagination.{PagedData, Pagination}
 import zio.*
 
-import scala.util.{Success, Try}
-
 class MongoTenantRepository(mongo: DefaultMongoClient) extends TenantRepository:
 
-  private implicit val tenantBsonHandler: BSONDocumentHandler[TenantDo] = Macros.handler[TenantDo]
+  import bson.handler.given
+  import xauth.infrastructure.mongo.bson.handler.given
 
   private def find(s: BSONDocument) =
     mongo.collection(TenantC) flatMap:

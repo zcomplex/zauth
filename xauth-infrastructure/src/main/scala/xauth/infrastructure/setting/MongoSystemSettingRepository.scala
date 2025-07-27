@@ -1,7 +1,7 @@
 package xauth.infrastructure.setting
 
 import reactivemongo.api.Cursor
-import reactivemongo.api.bson.{BSONDocument, BSONDocumentHandler, BSONString}
+import reactivemongo.api.bson.BSONDocument
 import xauth.core.domain.system.model.{SettingKey, SystemSetting}
 import xauth.core.domain.system.port.SystemSettingRepository
 import xauth.infrastructure.mongo.DefaultMongoClient
@@ -9,31 +9,9 @@ import xauth.infrastructure.mongo.SystemCollection.Setting as SettingC
 import xauth.infrastructure.setting.MongoSystemSettingRepository
 import zio.{Tag, Task, ZIO, ZLayer}
 
-import scala.util.{Failure, Success, Try}
-
 private class MongoSystemSettingRepository(mongo: DefaultMongoClient) extends SystemSettingRepository:
 
-  private given systemSettingBsonHandler: BSONDocumentHandler[SystemSetting] = new BSONDocumentHandler[SystemSetting]:
-    override def readDocument(b: BSONDocument): Try[SystemSetting] =
-      b.asTry[BSONDocument] flatMap: d =>
-        val setting = for
-          k <- d
-            .get("_id")
-            .collect:
-              case s: BSONString => SettingKey.fromValue(s.value)
-          v <- d
-            .get("value")
-            .collect:
-              case s: BSONString => s.value
-        yield SystemSetting(k, v)
-
-        setting match
-          case Some(s) => Success(s)
-          case None => Failure(new NoSuchFieldException("unable to parse key/value bson document"))
-
-    override def writeTry(s: SystemSetting): Try[BSONDocument] =
-      Success:
-        BSONDocument("_id" -> s.key.value, "value" -> s.value)
+  import bson.handler.given
 
   /** Saves the setting for the given key and value. */
   override def save[A](k: SettingKey, v: A): Task[A] =

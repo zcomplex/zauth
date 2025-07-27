@@ -2,17 +2,19 @@ package xauth.api
 
 import io.circe.*
 import io.circe.config.parser.*
-import io.circe.generic.semiauto.*
+import io.circe.generic.auto.*
 import xauth.api.info.InfoController
 import xauth.api.model.info.Info
 import xauth.core.application.usecase.*
 import xauth.core.common.model.ContactType
-import xauth.core.domain.configuration.model.{ClientConfiguration, Configuration, InitConfiguration, UserConfiguration}
+import xauth.core.domain.configuration.model.{Configuration as AppConf, *}
 import xauth.core.domain.system.port.{SystemService, SystemSettingRepository}
 import xauth.core.domain.user.model.{UserContact, UserInfo}
 import xauth.core.domain.workspace.model.*
+import xauth.core.spi.env.{TimeService, UuidService}
 import xauth.generated.BuildInfo
 import xauth.infrastructure.client.MongoClientRepository
+import xauth.infrastructure.code.MongoAccountCodeRepository
 import xauth.infrastructure.messaging.provider.ProviderRegistryImpl
 import xauth.infrastructure.mongo.*
 import xauth.infrastructure.setting.MongoSystemSettingRepository
@@ -25,7 +27,7 @@ import zio.http.Method.GET
 import zio.http.codec.*
 import zio.http.endpoint.*
 
-import java.nio.file.{Files, Paths}
+import java.util.Locale
 
 object Main extends ZIOAppDefault:
 
@@ -47,47 +49,39 @@ object Main extends ZIOAppDefault:
       _   <- Server.serve(routes)
     yield ()
 
-    given Decoder[Encryption]            = deriveDecoder
-    given Decoder[Expiration]            = deriveDecoder
-    given Decoder[Jwt]                   = deriveDecoder
-    given Decoder[ProviderConf]          = deriveDecoder
-    given Decoder[MessagingConf]         = deriveDecoder
-    given Decoder[RoutesConfiguration]   = deriveDecoder
-    given Decoder[FrontEndConfiguration] = deriveDecoder
-    given Decoder[DatabaseConf]          = deriveDecoder
-    given Decoder[WorkspaceConfiguration]= deriveDecoder
-    given Decoder[ClientConfiguration]   = deriveDecoder
-    given Decoder[ContactType]           = Decoder.decodeString map ContactType.fromValue
-    given Decoder[UserContact]           = deriveDecoder
-    given Decoder[UserInfo]              = deriveDecoder
-    given Decoder[UserConfiguration]     = deriveDecoder
-    given Decoder[InitConfiguration]     = deriveDecoder
-    given Decoder[Configuration]         = deriveDecoder
+    given Decoder[Locale]      = Decoder.decodeString map Locale.forLanguageTag
+    given Decoder[ContactType] = Decoder.decodeString map ContactType.fromValue
 
-    val configLayer: ZLayer[Any, Throwable, Configuration] =
+    val configLayer: ZLayer[Any, Throwable, AppConf] =
       ZLayer.fromZIO:
-        val file = sys.props.get("config.file") getOrElse "conf/application.conf"
         for
-          bytes  <- ZIO.attempt(Files.readAllBytes(Paths.get(file)))
-          json   <- ZIO.succeed(new String(bytes, "UTF-8"))
-          config <- ZIO.fromEither(decode[Configuration](json))
+          json   <- ZIO.succeed(os.read(os.pwd / "conf" / "application.conf"))
+          config <- ZIO.fromEither(decode[AppConf](json))
         yield config
 
-    val messagingLayer = MessagingServiceImpl.layer
+    val templateLayer = TemplateServiceImpl.layer(os.pwd / "conf" / "template")
+    val messagingLayer = templateLayer >>> MessagingServiceImpl.layer
 
     val mongoClient = configLayer >>> DefaultDriver.layer >>> DefaultMongoClient.layer
+    val environmentLayer = TimeService.layer ++ UuidService.layer >>> DefaultEnvironment.layer
+
     val systemSettingRepository = MongoSystemSettingRepository.layer
+    val accountCodeRepository = MongoClientRepository.layer >>> MongoAccountCodeRepository.layer
 
     val settings = MongoSystemSettingRepository.layer
     val tenants = MongoTenantRepository.layer >>> TenantServiceImpl.layer
     val workspaces = MongoWorkspaceRepository.layer >>> WorkspaceServiceImpl.layer
     val clients = MongoClientRepository.layer >>> ClientServiceImpl.layer
+    val codes = accountCodeRepository >>> AccountCodeServiceImpl.layer
+
     val users = MongoUserRepository.layer >>> UserServiceImpl.layer
-    
-    val workspaceRegistry =  MongoWorkspaceRepository.layer >>> WorkspaceRegistry.layer
+    val workspaceRegistry = MongoWorkspaceRepository.layer >>> WorkspaceRegistry.layer
+
+    val accountEventDispatcher = codes >>> AccountEventDispatcherImpl.layer
 
     val systemService = ZLayer.make[SystemService](
-      configLayer, mongoClient, ProviderRegistryImpl.layer, workspaceRegistry, messagingLayer, systemSettingRepository, tenants, workspaces, clients, users, SystemServiceImpl.layer
+      configLayer, mongoClient, environmentLayer, accountEventDispatcher, ProviderRegistryImpl.layer,
+      workspaceRegistry, messagingLayer, systemSettingRepository, tenants, workspaces, clients, users, SystemServiceImpl.layer
     )
 
     effect

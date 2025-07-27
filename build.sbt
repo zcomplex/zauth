@@ -16,9 +16,11 @@ val ZioSchema     = "dev.zio" %% "zio-schema"      % "1.7.3"
 val ZioSchemaJson = "dev.zio" %% "zio-schema-json" % "1.7.3"
 val ZioLogging    = "dev.zio" %% "zio-logging"     % "2.5.1"
 
-val CirceCore     = "io.circe" %% "circe-core"     % "0.14.14"
-val CirceGeneric  = "io.circe" %% "circe-generic"  % "0.14.14"
-val CirceConfig   = "io.circe" %% "circe-config"   % "0.10.2"
+val CirceCore         = "io.circe" %% "circe-core"           % "0.14.14"
+val CirceParser       = "io.circe" %% "circe-parser"         % "0.14.14"
+val CirceConfig       = "io.circe" %% "circe-config"         % "0.10.2"
+val CirceGeneric      = "io.circe" %% "circe-generic"        % "0.14.14"
+val CirceGenericExtra = "io.circe" %% "circe-generic-extras" % "0.14.5-RC1"
 
 lazy val settings = Seq(
   scalaVersion := scala3Version,
@@ -81,7 +83,8 @@ lazy val xauthCore = project
     libraryDependencies ++= Seq(
       // Scrypt implementation for password encryption
       "com.lambdaworks" % "scrypt" % "1.4.0",
-      CirceCore
+      "com.lihaoyi" %% "os-lib" % "0.11.4",
+      CirceCore, CirceParser, CirceConfig, CirceGeneric, CirceGenericExtra
     )
   )
 

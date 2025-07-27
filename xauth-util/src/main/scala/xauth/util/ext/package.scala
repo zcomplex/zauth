@@ -38,7 +38,7 @@ package object ext:
 
   /** Generates a random string. */
   extension (cs: Seq[Char])
-    def random(length: Int): String = new RandomString(cs).random(length)
+    infix def random(length: Int): String = new RandomString(cs).random(length)
 
   /** Retrieves the epoch milliseconds. */
   extension (t: LocalTime)

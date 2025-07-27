@@ -6,13 +6,13 @@ import xauth.core.common.model.{AuthRole, AuthStatus}
 import xauth.core.domain.user.model.{AppInfo, User, UserInfo}
 import xauth.core.domain.user.port.{UserRepository, UserService}
 import xauth.core.domain.workspace.model.Workspace
-import xauth.core.spi.MessagingService
+import xauth.core.spi.{AccountEvent, AccountEventDispatcher}
 import xauth.util.Uuid
 import xauth.util.ext.random
 import xauth.util.time.ZonedDate
 import zio.{Task, URLayer, ZIO, ZLayer}
 
-class UserServiceImpl(repository: UserRepository, messaging: MessagingService) extends UserService:
+class UserServiceImpl(repository: UserRepository, dispatcher: AccountEventDispatcher) extends UserService:
 
   /**
    * Creates new user for the given workspace.
@@ -24,7 +24,7 @@ class UserServiceImpl(repository: UserRepository, messaging: MessagingService) e
    */
   override def create(username: String, password: String, description: Option[String], parentId: Option[Uuid], userInfo: UserInfo, status: AuthStatus, applications: List[AppInfo], roles: AuthRole*)(using w: Workspace): Task[User] =
     // specific workspace timezone
-    val now = ZonedDate.now(w.configuration.zoneId)
+    val now = ZonedDate.now(w.configuration.timezone)
     
     val encryption = cryptWithSalt(password)
     
@@ -47,9 +47,9 @@ class UserServiceImpl(repository: UserRepository, messaging: MessagingService) e
 
     for
       u <- repository save user
-      _ <- ZIO.when(user.status == Disabled):
-        messaging.sendActivationMessage(u).forkDaemon
-          *> messaging.notifyUserRegistration(u).forkDaemon
+      _ <- ZIO
+        .when(user.status == Disabled):
+          dispatcher.dispatch(AccountEvent.UserRegistered(u, w)).forkDaemon
     yield u
 
   private def cryptWithSalt(s: String): (salt: String, hash: String) =
@@ -70,9 +70,9 @@ class UserServiceImpl(repository: UserRepository, messaging: MessagingService) e
 
 object UserServiceImpl:
 
-  val layer: URLayer[UserRepository & MessagingService, UserServiceImpl] =
+  val layer: URLayer[UserRepository & AccountEventDispatcher, UserServiceImpl] =
     ZLayer.fromZIO:
       for
         repository <- ZIO.service[UserRepository]
-        messaging <- ZIO.service[MessagingService]
-      yield new UserServiceImpl(repository, messaging)
+        dispatcher <- ZIO.service[AccountEventDispatcher]
+      yield new UserServiceImpl(repository, dispatcher)

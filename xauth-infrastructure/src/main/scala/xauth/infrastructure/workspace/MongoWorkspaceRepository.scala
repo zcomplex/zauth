@@ -1,63 +1,23 @@
 package xauth.infrastructure.workspace
 
-import io.circe.Json
 import reactivemongo.api.bson.*
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, ReadPreference}
 import xauth.core.domain.workspace.model.*
-import xauth.core.domain.workspace.model.ProviderConf.PConf
 import xauth.core.domain.workspace.port.WorkspaceRepository
 import xauth.infrastructure.mongo.SystemCollection.Workspace as WorkspaceC
 import xauth.infrastructure.mongo.WorkspaceCollection.{Invitation, User}
-import xauth.infrastructure.mongo.bson.ext.{toBson, toJson}
-import xauth.infrastructure.mongo.bson.handler.given
 import xauth.infrastructure.mongo.{DefaultMongoClient, WorkspaceCollection}
 import xauth.infrastructure.workspace.WorkspaceDo.*
 import xauth.util.Uuid
 import xauth.util.pagination.{PagedData, Pagination}
 import zio.*
 
-import scala.util.{Success, Try}
-
 class MongoWorkspaceRepository(mongo: DefaultMongoClient) extends WorkspaceRepository:
 
-  private given workspaceStatusBsonHandler: BSONHandler[WorkspaceStatus] = new BSONHandler[WorkspaceStatus]:
-    override def readTry(b: BSONValue): Try[WorkspaceStatus] = b.asTry[BSONString] map { s => WorkspaceStatus.fromValue(s.value) }
-    override def writeTry(s: WorkspaceStatus): Try[BSONValue] = Success(BSONString(s.value))
-
-  private given routesConfigurationBsonHandler: BSONDocumentHandler[RoutesConfiguration] = Macros.handler[RoutesConfiguration]
-  private given smtpConfigurationBsonHandler: BSONDocumentHandler[SmtpConfiguration] = Macros.handler[SmtpConfiguration]
-
-  private given expirationBsonHandler: BSONDocumentHandler[Expiration] = Macros.handler[Expiration]
-  private given encryptionBsonHandler: BSONDocumentHandler[Encryption] = Macros.handler[Encryption]
-
-  private given databaseConfBsonHandler: BSONDocumentHandler[DatabaseConf] = Macros.handler[DatabaseConf]
-  private given frontEndConfigurationBsonHandler: BSONDocumentHandler[FrontEndConfiguration] = Macros.handler[FrontEndConfiguration]
-
-  private given providerConfiguration2BsonHandler: BSONDocumentHandler[PConf] = new BSONDocumentHandler[PConf]:
-    override def readDocument(b: BSONDocument): Try[PConf] =
-      b.asTry[BSONDocument] map:
-        _.elements
-          .collect:
-            e => e.name -> e.value.toJson
-          .toMap
-
-    override def writeTry(c: PConf): Try[BSONDocument] =
-      Success:
-        BSONDocument:
-          c.collect:
-            case (k, v: Json) => k -> v.toBson
-
-  private given providerConfigurationBsonHandler: BSONDocumentHandler[ProviderConf] = Macros.handler[ProviderConf]
-  private given messagingConfigurationBsonHandler: BSONDocumentHandler[MessagingConf] = Macros.handler[MessagingConf]
-
-  private given mailConfigurationBsonHandler: BSONDocumentHandler[MailConfiguration] = Macros.handler[MailConfiguration]
-  private given jwtBsonHandler: BSONDocumentHandler[Jwt] = Macros.handler[Jwt]
-
-  private given workspaceConfigurationBsonHandler: BSONDocumentHandler[WorkspaceConfiguration] = Macros.handler[WorkspaceConfiguration]
-
-  private given workspaceBsonHandler: BSONDocumentHandler[WorkspaceDo] = Macros.handler[WorkspaceDo]
+  import bson.handler.given
+  import xauth.infrastructure.mongo.bson.handler.uuidBsonHandler
 
   private def find(s: BSONDocument): Task[Option[Workspace]] =
     mongo.collection(WorkspaceC) flatMap:
@@ -77,7 +37,7 @@ class MongoWorkspaceRepository(mongo: DefaultMongoClient) extends WorkspaceRepos
             BSONDocument("_id" -> id)
           .map(_.n > 0)
 
-  /** Finds all workspaces. */
+  /** Finds all workspaces.0645263160 */
   override def findAll: Task[Seq[Workspace]] =
     for
       c <- mongo.collection(WorkspaceC)
