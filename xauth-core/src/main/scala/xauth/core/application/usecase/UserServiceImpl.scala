@@ -9,8 +9,9 @@ import xauth.core.domain.workspace.model.Workspace
 import xauth.core.spi.{AccountEvent, AccountEventDispatcher}
 import xauth.util.Uuid
 import xauth.util.ext.random
-import xauth.util.time.ZonedDate
 import zio.{Task, URLayer, ZIO, ZLayer}
+
+import java.time.Instant
 
 class UserServiceImpl(repository: UserRepository, dispatcher: AccountEventDispatcher) extends UserService:
 
@@ -23,8 +24,8 @@ class UserServiceImpl(repository: UserRepository, dispatcher: AccountEventDispat
    * @return Returns a [[Task]] that boxes just created user.
    */
   override def create(username: String, password: String, description: Option[String], parentId: Option[Uuid], userInfo: UserInfo, status: AuthStatus, applications: List[AppInfo], roles: AuthRole*)(using w: Workspace): Task[User] =
-    // specific workspace timezone
-    val now = ZonedDate.now(w.configuration.timezone)
+
+    val now = Instant.now
     
     val encryption = cryptWithSalt(password)
     

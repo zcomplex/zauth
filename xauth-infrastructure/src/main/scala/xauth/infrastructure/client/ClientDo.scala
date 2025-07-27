@@ -2,6 +2,7 @@ package xauth.infrastructure.client
 
 import reactivemongo.api.bson.Macros.Annotations.Key
 import xauth.core.domain.client.model.Client
+import xauth.util.Uuid
 
 import java.time.Instant
 
@@ -10,8 +11,10 @@ case class ClientDo
   @Key("_id")
   id: String,
   secret: String,
-  registeredAt: Instant,
-  updatedAt: Instant
+  createdAt: Instant,
+  createdBy: Uuid,
+  updatedAt: Instant,
+  updatedBy: Uuid
 )
 
 object ClientDo:
@@ -21,8 +24,10 @@ object ClientDo:
       ClientDo(
         id = c.id,
         secret = c.secret,
-        registeredAt = c.registeredAt,
-        updatedAt = c.updatedAt
+        createdAt = c.createdAt,
+        createdBy = c.createdBy,
+        updatedAt = c.updatedAt,
+        updatedBy = c.updatedBy
       )
 
   extension (c: ClientDo)
@@ -30,6 +35,8 @@ object ClientDo:
       Client(
         id = c.id,
         secret = c.secret,
-        registeredAt = c.registeredAt,
-        updatedAt = c.updatedAt
+        createdAt = c.createdAt,
+        createdBy = c.createdBy,
+        updatedAt = c.updatedAt,
+        updatedBy = c.updatedBy
       )

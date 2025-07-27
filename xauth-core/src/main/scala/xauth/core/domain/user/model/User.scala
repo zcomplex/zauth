@@ -3,7 +3,8 @@ package xauth.core.domain.user.model
 import xauth.core.common.model.ContactType.*
 import xauth.core.common.model.{AuthRole, AuthStatus, ContactType, Permission}
 import xauth.util.Uuid
-import xauth.util.time.ZonedDate
+
+import java.time.Instant
 
 /** Defines user information. */
 case class UserInfo
@@ -43,9 +44,9 @@ case class User
   description: Option[String],
   info: UserInfo,
   createdBy: Uuid,
-  createdAt: ZonedDate,
+  createdAt: Instant,
   updatedBy: Uuid,
-  updatedAt: ZonedDate
+  updatedAt: Instant
 ):
 
   def contact(t: ContactType, trusted: Boolean = true): Option[String] =

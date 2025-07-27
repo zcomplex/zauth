@@ -6,11 +6,11 @@ import xauth.core.domain.workspace.model.WorkspaceStatus.Enabled
 import xauth.core.domain.workspace.model.{Company, Workspace, WorkspaceConf, WorkspaceInit}
 import xauth.core.domain.workspace.port.{WorkspaceRepository, WorkspaceService}
 import xauth.util.Uuid
-import xauth.util.time.ZonedDate
 import zio.{Task, URLayer, ZIO, ZLayer}
 
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.{Files, Path, Paths}
+import java.time.Instant
 
 class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceRegistry, conf: Configuration) extends WorkspaceService:
 
@@ -27,7 +27,7 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceR
   /** Creates system default workspace. */
   override def createSystemWorkspace: Task[Workspace] =
 
-    val date = ZonedDate.now
+    val date = Instant.now
 
     val workspace = Workspace(
       id = Uuid.Zero,
@@ -40,8 +40,10 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceR
       ),
       status = Enabled,
       configuration = conf.init.workspace.configuration,
-      registeredAt = date,
-      updatedAt = date
+      createdAt = date,
+      createdBy = Uuid.Zero,
+      updatedAt = date,
+      updatedBy = Uuid.Zero
     )
 
     for

@@ -1,11 +1,15 @@
 package xauth.core.domain.client.model
 
+import xauth.util.Uuid
+
 import java.time.Instant
 
 case class Client
 (
   id: String,
   secret: String,
-  registeredAt: Instant,
-  updatedAt: Instant
+  createdAt: Instant,
+  createdBy: Uuid,
+  updatedAt: Instant,
+  updatedBy: Uuid
 )

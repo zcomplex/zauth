@@ -4,7 +4,8 @@ import reactivemongo.api.bson.Macros.Annotations.Key
 import xauth.core.common.model.{AuthRole, AuthStatus}
 import xauth.core.domain.user.model.{AppInfo, User, UserInfo}
 import xauth.util.Uuid
-import xauth.util.time.ZonedDate
+
+import java.time.Instant
 
 case class UserDo
 (
@@ -20,9 +21,9 @@ case class UserDo
   description: Option[String],
   info: UserInfo,
   createdBy: Uuid,
-  createdAt: ZonedDate,
+  createdAt: Instant,
   updatedBy: Uuid,
-  updatedAt: ZonedDate
+  updatedAt: Instant
 )
 
 object UserDo:

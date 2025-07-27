@@ -10,6 +10,8 @@ case class Tenant
   slug: String,
   description: String,
   workspaceIds: Seq[Uuid] = Seq.empty,
-  registeredAt: Instant,
-  updatedAt: Instant
+  createdAt: Instant,
+  createdBy: Uuid,
+  updatedAt: Instant,
+  updatedBy: Uuid
 )

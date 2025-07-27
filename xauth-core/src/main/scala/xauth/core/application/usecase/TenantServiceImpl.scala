@@ -32,10 +32,12 @@ class TenantServiceImpl(repository: TenantRepository) extends TenantService:
       slug = "root",
       description = "system default",
       workspaceIds = Uuid.Zero :: Nil,
-      registeredAt = now,
-      updatedAt = now
+      createdAt = now,
+      createdBy = Uuid.Zero,
+      updatedAt = now,
+      updatedBy = Uuid.Zero
     )
-    
+
     repository.save(tenant)
   }
 

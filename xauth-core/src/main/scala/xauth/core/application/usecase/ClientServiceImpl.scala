@@ -3,6 +3,7 @@ package xauth.core.application.usecase
 import xauth.core.domain.client.model.Client
 import xauth.core.domain.client.port.{ClientRepository, ClientService}
 import xauth.core.domain.workspace.model.Workspace
+import xauth.util.Uuid
 import zio.{Task, URLayer, ZIO, ZLayer}
 import xauth.util.ext.md5
 
@@ -20,7 +21,7 @@ class ClientServiceImpl(repository: ClientRepository) extends ClientService:
   def create(id: String, secret: String)(using w: Workspace): Task[Client] =
 
     val now = Instant.now
-    val client = Client(id, secret.md5, now, now)
+    val client = Client(id, secret.md5, now, Uuid.Zero, now, Uuid.Zero)
   
     for
       // todo: add existence checks

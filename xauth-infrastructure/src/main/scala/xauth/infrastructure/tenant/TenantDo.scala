@@ -13,8 +13,10 @@ case class TenantDo
   slug: String,
   description: String,
   workspaceIds: Seq[Uuid] = Seq.empty,
-  registeredAt: Instant,
-  updatedAt: Instant
+  createdAt: Instant,
+  createdBy: Uuid,
+  updatedAt: Instant,
+  updatedBy: Uuid
 )
 
 object TenantDo:
@@ -26,8 +28,10 @@ object TenantDo:
         slug = t.slug,
         description = t.description,
         workspaceIds = t.workspaceIds,
-        registeredAt = t.registeredAt,
-        updatedAt = t.updatedAt
+        createdAt = t.createdAt,
+        createdBy = t.createdBy,
+        updatedAt = t.updatedAt,
+        updatedBy = t.updatedBy
       )
 
   extension (t: TenantDo)
@@ -37,6 +41,8 @@ object TenantDo:
         slug = t.slug,
         description = t.description,
         workspaceIds = t.workspaceIds,
-        registeredAt = t.registeredAt,
-        updatedAt = t.updatedAt
+        createdAt = t.createdAt,
+        createdBy = t.createdBy,
+        updatedAt = t.updatedAt,
+        updatedBy = t.updatedBy
       )
