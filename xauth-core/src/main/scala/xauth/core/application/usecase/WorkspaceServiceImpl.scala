@@ -27,7 +27,7 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceR
   /** Creates system default workspace. */
   override def createSystemWorkspace: Task[Workspace] =
 
-    val date = Instant.now
+    val now = Instant.now
 
     val workspace = Workspace(
       id = Uuid.Zero,
@@ -40,9 +40,9 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceR
       ),
       status = Enabled,
       configuration = conf.init.workspace.configuration,
-      createdAt = date,
+      createdAt = now,
       createdBy = Uuid.Zero,
-      updatedAt = date,
+      updatedAt = now,
       updatedBy = Uuid.Zero
     )
 

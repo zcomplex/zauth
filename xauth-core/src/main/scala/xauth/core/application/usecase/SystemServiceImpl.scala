@@ -12,7 +12,7 @@ import xauth.core.domain.user.port.UserService
 import xauth.core.domain.workspace.port.WorkspaceService
 import zio.*
 
-private class SystemServiceImpl(
+private final class SystemServiceImpl(
                                  settings: SystemSettingRepository,
                                  tenants: TenantService,
                                  workspaces: WorkspaceService,
@@ -64,16 +64,13 @@ private class SystemServiceImpl(
 
 object SystemServiceImpl:
 
-  val layer: ZLayer[SystemSettingRepository & TenantService & WorkspaceService & ClientService & UserService & Configuration, Nothing, SystemService] = {
-
-    val effect = for
-      settings   <- ZIO.service[SystemSettingRepository]
-      tenants    <- ZIO.service[TenantService]
-      workspaces <- ZIO.service[WorkspaceService]
-      conf       <- ZIO.service[Configuration]
-      clients    <- ZIO.service[ClientService]
-      users      <- ZIO.service[UserService]
-    yield new SystemServiceImpl(settings, tenants, workspaces, clients, users, conf)
-
-    ZLayer fromZIO effect
-  }
+  val layer: ZLayer[SystemSettingRepository & TenantService & WorkspaceService & ClientService & UserService & Configuration, Nothing, SystemService] =
+    ZLayer fromZIO:
+      for
+        settings   <- ZIO.service[SystemSettingRepository]
+        tenants    <- ZIO.service[TenantService]
+        workspaces <- ZIO.service[WorkspaceService]
+        conf       <- ZIO.service[Configuration]
+        clients    <- ZIO.service[ClientService]
+        users      <- ZIO.service[UserService]
+      yield new SystemServiceImpl(settings, tenants, workspaces, clients, users, conf)
