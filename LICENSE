@@ -694,9 +694,41 @@ Public License instead of this License.  But first, please read
 2. Additional Terms – "No SaaS" Clause
 ======================================
 
-It is prohibited to offer this software, modified or not, as a public network
-service (Software-as-a-Service or similar) without a written agreement
-from the author. This restriction does not limit internal use, this software
-can be freely integrated with other free or commercial services that do not act
-as a wrapper around the software for the purposes of unauthorized commercial use
-of the software itself.
+In accordance with Section 7 of the GNU GPLv3 (“Additional Terms”), the following
+restriction applies:
+
+It is prohibited to offer this software, modified or unmodified, as a publicly
+accessible service (including but not limited to Software-as-a-Service, Platform-
+as-a-Service, Database-as-a-Service, API-as-a-Service, or similar), without a
+prior written agreement from the copyright holder.
+
+This restriction does not limit:
+- private or internal use of the software,
+- integration of the software with other free or commercial tools,
+  provided that such integration does not act as a wrapper or service
+  whose main purpose is to commercialize the software itself
+  without authorization.
+
+======================
+3. Warranty Disclaimer
+======================
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS”
+AND WITHOUT ANY WARRANTY, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+==========
+4. Summary
+==========
+
+Rights and Permissions:
+ - Use and modify ARE ALLOWED (under GPLv3)
+ - Redistribute IS ALLOWED (must remain GPLv3)
+ - Offer as SaaS / hosted service IS NOT ALLOWED without agreement
+ - Internal or private use IS ALLOWED
+ - Commercial use (on-premise) IS ALLOWED
+ - Warranty: None; software provided “AS IS”
