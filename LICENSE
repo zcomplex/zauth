@@ -1,4 +1,18 @@
-                    GNU GENERAL PUBLIC LICENSE
+Copyright (c) 2025 ZAuth
+
+This software is released under the GNU General Public License v3 (GPLv3),
+the licensing structure for ZAuth is as follows:
+
+1. Source code is under GNU General Public License v3 (GPLv3)
+2. SaaS usage prohibited without agreement
+
+                                ***
+
+=============================================================
+1. Source code is under GNU General Public License v3 (GPLv3)
+=============================================================
+
+                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
  Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
@@ -672,3 +686,14 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+
+==========================================
+2. SaaS usage prohibited without agreement
+==========================================
+
+It is prohibited to offer this software, modified or not, as a public network
+service (Software-as-a-Service or similar) without a written agreement
+from the author. This restriction does not limit internal use, this software
+can be freely integrated with other free or commercial services that do not act
+as a wrapper around the software for the purposes of unauthorized commercial use
+of the software itself.
