@@ -1,4 +1,4 @@
-## X-Auth 3
+## Z-Auth 3
 
 ### Usage
 
@@ -17,8 +17,8 @@ or
 
 ## License
 
-This project is released under **GNU GPL v3** with an additional clause
-that **prohibits offering it as a public SaaS without written permission**.
+This project is released under **[Z-Auth License V1](./LICENSE)** which is **GNU GPL v3** with an
+additional clause that **prohibits offering it as a public SaaS without written permission**.
 
 You may:
 - Use and modify the software freely.
