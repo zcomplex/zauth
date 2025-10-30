@@ -1,5 +1,6 @@
 package xauth.infrastructure
 
+import io.circe.Encoder
 import reactivemongo.api.bson.{BSONDocumentHandler, BSONValue, Macros}
 import xauth.core.domain.user.model.{AppInfo, UserContact, UserInfo}
 
@@ -18,3 +19,7 @@ package object user:
       given userInfoBsonHandler: BSONDocumentHandler[UserInfo] = Macros.handler[UserInfo]
       
       given userBsonHandler: BSONDocumentHandler[UserDo] = Macros.handler[UserDo]
+  
+  object json:
+    
+    given appInfo: Encoder[AppInfo] = ???

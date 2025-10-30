@@ -12,25 +12,28 @@ val patch = 0
 
 def ver(patch: Int = patch) = s"$major.$minor.$patch"
 
-val ZioSchema     = "dev.zio" %% "zio-schema"      % "1.7.3"
-val ZioSchemaJson = "dev.zio" %% "zio-schema-json" % "1.7.3"
+val ZioSchema     = "dev.zio" %% "zio-schema"      % "1.7.5"
+val ZioSchemaJson = "dev.zio" %% "zio-schema-json" % "1.7.5"
 val ZioLogging    = "dev.zio" %% "zio-logging"     % "2.5.1"
 
-val CirceCore         = "io.circe" %% "circe-core"           % "0.14.14"
-val CirceParser       = "io.circe" %% "circe-parser"         % "0.14.14"
+val CirceCore         = "io.circe" %% "circe-core"           % "0.14.15"
+val CirceParser       = "io.circe" %% "circe-parser"         % "0.14.15"
 val CirceConfig       = "io.circe" %% "circe-config"         % "0.10.2"
-val CirceGeneric      = "io.circe" %% "circe-generic"        % "0.14.14"
+val CirceGeneric      = "io.circe" %% "circe-generic"        % "0.14.15"
 val CirceGenericExtra = "io.circe" %% "circe-generic-extras" % "0.14.5-RC1"
 
-lazy val settings = Seq(
+lazy val scalaSettings = Seq(
   scalaVersion := scala3Version,
   scalacOptions += "-Xmax-inlines:128000",
+)
+
+lazy val settings = Seq(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio"          % "2.1.20",
-    "dev.zio" %% "zio-test"     % "2.1.20" % Test,
-    "dev.zio" %% "zio-test-sbt" % "2.1.20" % Test,
+    "dev.zio" %% "zio"          % "2.1.22",
+    "dev.zio" %% "zio-test"     % "2.1.22" % Test,
+    "dev.zio" %% "zio-test-sbt" % "2.1.22" % Test,
     ZioSchema,
-    "org.scalameta" %% "munit" % "1.1.1" % Test
+    "org.scalameta" %% "munit" % "1.2.1" % Test
   )
 )
 
@@ -56,6 +59,8 @@ def module(id: String) = s"xauth-$id"
 val Core: String = module("core")
 val Api: String = module("api")
 val ApiModel: String = module("api-model")
+val ApiModelCirce: String = module("api-model-circe")
+val ApiModelZioJson: String = module("api-model-ziojson")
 val Util: String = module("util")
 val Infrastructure: String = module("infrastructure")
 
@@ -64,6 +69,7 @@ val Infrastructure: String = module("infrastructure")
 lazy val xauthUtil = project
   .in(file(Util))
   .settings(buildInfoTask(Util))
+  .settings(scalaSettings)
   .settings(settings)
   .settings(
     name := Util,
@@ -76,6 +82,7 @@ lazy val xauthCore = project
   .in(file(Core))
   .dependsOn(xauthUtil)
   .settings(buildInfoTask(Core))
+  .settings(scalaSettings)
   .settings(settings)
   .settings(
     name := Core,
@@ -83,7 +90,7 @@ lazy val xauthCore = project
     libraryDependencies ++= Seq(
       // Scrypt implementation for password encryption
       "com.lambdaworks" % "scrypt" % "1.4.0",
-      "com.lihaoyi" %% "os-lib" % "0.11.4",
+      "com.lihaoyi" %% "os-lib" % "0.11.5",
       CirceCore, CirceParser, CirceConfig, CirceGeneric, CirceGenericExtra
     )
   )
@@ -93,11 +100,35 @@ lazy val xauthCore = project
 lazy val xauthApiModel = project
   .in(file(ApiModel))
   .settings(buildInfoTask(ApiModel))
+  .settings(scalaSettings)
   .settings(settings)
   .settings(
     name := ApiModel,
+    version := ver(0)/*,
+    libraryDependencies ++= Seq(CirceCore, CirceGeneric)*/
+  )
+
+// xauth-api-model-circe
+// Defines givens for data transport objects.
+//lazy val xauthApiModelCirce = project
+//  .in(file(ApiModelCirce))
+//  .dependsOn(xauthApiModel)
+//  .settings(
+//    name := ApiModelCirce,
+//    version := ver(0),
+//    libraryDependencies ++= Seq(CirceGeneric)
+//  )
+
+// xauth-api-model-zio-json
+// Defines givens for data transport objects.
+lazy val xauthApiModelZioJson = project
+  .in(file(ApiModelZioJson))
+  .dependsOn(xauthApiModel)
+  .settings(scalaSettings)
+  .settings(
+    name := ApiModelZioJson,
     version := ver(0),
-    libraryDependencies ++= Seq(/*ZioSchema, */ZioSchemaJson)
+    libraryDependencies ++= Seq(ZioSchemaJson)
   )
 
 // xauth-infrastructure
@@ -107,6 +138,7 @@ lazy val xauthInfrastructure = project
   .dependsOn(xauthUtil)
   .dependsOn(xauthCore)
   .settings(buildInfoTask(Infrastructure))
+  .settings(scalaSettings)
   .settings(settings)
   .settings(
     name := Infrastructure,
@@ -123,14 +155,19 @@ lazy val xauthInfrastructure = project
 // Exposes authentication services via http.
 lazy val xauthApi = project
   .in(file(Api))
-  .dependsOn(xauthInfrastructure, xauthApiModel)
+  .dependsOn(xauthInfrastructure, xauthApiModel, xauthApiModelZioJson)
   .settings(buildInfoTask(Api))
+  .settings(scalaSettings)
   .settings(settings)
   .settings(
     name := Api,
     version := ver(0),
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio-http" % "3.3.3",
+      "dev.zio" %% "zio-http" % "3.5.1",
+      // JWT
+      "com.github.jwt-scala" %% "jwt-circe" % "11.0.3",
+      // JWK
+      "com.nimbusds" % "nimbus-jose-jwt" % "10.5",
       ZioSchema, ZioSchemaJson,
       CirceCore, CirceGeneric, CirceConfig
     )
@@ -140,6 +177,7 @@ lazy val xauthApi = project
 // Supplies a command line tool that represents the client for xauth-api
 lazy val xauthCli = project
   .in(file("xauth-cli"))
+  .settings(scalaSettings)
   .settings(settings)
   .settings(
     name := "xauth-cli",
@@ -149,6 +187,7 @@ lazy val xauthCli = project
 lazy val root = project
   .in(file("."))
   .aggregate(xauthUtil, xauthCore, xauthApiModel, xauthInfrastructure, xauthApi, xauthCli)
+  .settings(scalaSettings)
   .settings(settings)
   .settings(
     name := "xauth",

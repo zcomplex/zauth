@@ -1,9 +1,13 @@
 package xauth.util
 
-import java.security.{MessageDigest, SecureRandom}
+import java.io.{File, FileInputStream}
+import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
+import java.security.*
 import java.time.ZoneOffset.UTC
 import java.time.{Instant, LocalDateTime, LocalTime}
 import java.util.Base64.getEncoder
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 import scala.util.Random
 
 package object ext:
@@ -54,3 +58,25 @@ package object ext:
   extension (l: Long)
     def toEpochTime: LocalTime =
       LocalDateTime.ofInstant(Instant.ofEpochMilli(l), UTC).toLocalTime
+
+  extension (file: File)
+    def bytes: Array[Byte] =
+      val fis = new FileInputStream(file)
+      try LazyList.continually(fis.read).takeWhile(_ != -1).map(_.toByte).toArray
+      finally fis.close()
+
+  extension (bytes: Array[Byte])
+
+    /** Read bytes as private key. */
+    def toPrivateKey: PrivateKey =
+      val spec: PKCS8EncodedKeySpec = new PKCS8EncodedKeySpec(bytes)
+      val kf: KeyFactory = KeyFactory.getInstance("RSA")
+      kf.generatePrivate(spec)
+
+    /** Read bytes as public key. */
+    def toPublicKey: PublicKey =
+      val spec: X509EncodedKeySpec = new X509EncodedKeySpec(bytes)
+      val kf: KeyFactory = KeyFactory.getInstance("RSA")
+      kf.generatePublic(spec)
+
+    def toSecretKey: SecretKey = new SecretKeySpec(bytes, 0, bytes.length, "RSA")

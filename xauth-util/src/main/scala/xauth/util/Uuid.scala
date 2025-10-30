@@ -13,10 +13,12 @@ case class Uuid(uuid: Option[UUID] = None):
 
   val idType: UuidType = Anonymous // todo: handle it!
 
-  val stringValue: String = value.toString
+  // todo: evaluate deprecation
+  lazy val stringValue: String = value.toString
 
   // uuid(<id-type>, db9d9c40-e2eb-43de-910d-6a24114f11c5)
-  override def toString: String = s"uuid(${idType.value.toLowerCase}, $stringValue)"
+  def description: String = s"uuid(${idType.value.toLowerCase}, $stringValue)"
+  override def toString: String = stringValue
 
 object Uuid:
 

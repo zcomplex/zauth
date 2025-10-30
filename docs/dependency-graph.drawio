@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" version="28.0.7">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36" version="28.1.1">
   <diagram name="Page-1" id="97916047-d0de-89f5-080d-49f4d83e522f">
-    <mxGraphModel dx="4605.5" dy="3130.5" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1.5" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="3654.5" dy="2500.5" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1.5" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -303,6 +303,12 @@
         </mxCell>
         <mxCell id="bOzpMJoBxBwaHmuO_iwW-1" value="Environment" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;shadow=1;fontStyle=1;fontSize=17;" parent="1" vertex="1">
           <mxGeometry x="-500" y="600" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="YRfwYnbjAUwHaz6P8Qps-1" value="AuthenticationService" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;shadow=1;fontStyle=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="-770" y="-410" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="YRfwYnbjAUwHaz6P8Qps-2" value="AuthenticationManager" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;shadow=1;fontStyle=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="-620" y="-300" width="240" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

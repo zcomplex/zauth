@@ -14,10 +14,10 @@ import java.time.Instant
 
 class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceRegistry, conf: Configuration) extends WorkspaceService:
 
-  override def findById(id: Uuid): Task[Option[Workspace]] =
+  override infix def findById(id: Uuid): Task[Option[Workspace]] =
     repository.find(id)
 
-  override def findBySlug(slug: String): Task[Option[Workspace]] =
+  override infix def findBySlug(slug: String): Task[Option[Workspace]] =
     repository.findBySlug(slug)
 
   /** Retrieves all configured workspaces. */
@@ -63,7 +63,7 @@ class WorkspaceServiceImpl(repository: WorkspaceRepository, registry: WorkspaceR
   override def create(tenantId: Uuid, slug: String, desc: String, conf: WorkspaceConf, init: WorkspaceInit): Task[Workspace] = ???
 
   /** Updates the given workspace. */
-  override def update(w: Workspace): Task[Workspace] = ???
+  override infix def update(w: Workspace): Task[Workspace] = ???
 
 object WorkspaceServiceImpl:
 
