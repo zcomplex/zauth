@@ -1,5 +1,17 @@
 ## Z-Auth 3 (Porting in progress)
 
+ZAuth is a multi-tenant authentication service and much more.
+It allows you to manage the entire user lifecycle for your companies.
+It is written in Scala, uses ZIO, and is highly performant and configurable.
+
+This project is part of an entire ecosystem of services that allow you to
+independently manage users for your activities.
+If you like the project, please support it as much as you can.
+Thank you in advance.
+
+[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=QNPRZCZXYYCX2)
+
+
 ### Usage
 
 Compile code with `sbt compile`, run it with `sbt xauthApi/run`, and `sbt console` will start a Scala 3 REPL.
