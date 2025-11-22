@@ -1,4 +1,13 @@
-## Z-Auth 3 (Porting in progress)
+[//]: # (![ZAuth Logo]&#40;./docs/zauth-logo.png&#41;)
+
+## ZAuth - Multi-Tenant Authentication System
+
+<p align="center">
+  <br />
+  <img src="docs/zauth-logo.png" alt="ZAuth" style="margin:0 auto;width:30%;" title="ZAuth" />
+  <br /><span style="font-family: monospace">V3 - <i>Porting in progress</i></span>
+  <br />
+</p>
 
 ZAuth is a multi-tenant authentication service and much more.
 It allows you to manage the entire user lifecycle for your companies.
@@ -9,7 +18,13 @@ independently manage users for your activities.
 If you like the project, please support it as much as you can.
 Thank you in advance.
 
-[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=QNPRZCZXYYCX2)
+<p align="center">
+  <a href="https://www.paypal.com/donate/?hosted_button_id=QNPRZCZXYYCX2" rel="nofollow">
+    <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="Donate for ZAuth" />
+  </a>
+</p>
+
+[//]: # ([![Donate]&#40;https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif&#41;]&#40;https://www.paypal.com/donate/?hosted_button_id=QNPRZCZXYYCX2&#41;)
 
 
 ### Usage
