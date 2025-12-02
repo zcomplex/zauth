@@ -1,3 +1,5 @@
 package xauth.api
 
-abstract class AbstractController(auth: AuthenticationManager)
+abstract class AbstractController:
+
+  protected val auth: AuthenticationManager.type = AuthenticationManager

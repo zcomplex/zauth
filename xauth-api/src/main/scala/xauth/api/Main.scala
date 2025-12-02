@@ -8,11 +8,12 @@ import xauth.api.info.InfoController
 import xauth.api.tenant.TenantController
 import xauth.core.application.usecase.*
 import xauth.core.common.model.ContactType
+import xauth.core.domain.code.port.AccountCodeRepository
 import xauth.core.domain.configuration.model.{Configuration as AppConf, *}
 import xauth.core.domain.system.port.{SystemService, SystemSettingRepository}
 import xauth.core.domain.user.model.{UserContact, UserInfo}
 import xauth.core.domain.workspace.model.*
-import xauth.core.domain.workspace.port.WorkspaceService
+import xauth.core.domain.workspace.port.WorkspaceRepository
 import xauth.core.spi.env.{TimeService, UuidService}
 import xauth.generated.BuildInfo
 import xauth.infrastructure.client.MongoClientRepository
@@ -31,24 +32,19 @@ import java.util.Locale
 
 object Main extends ZIOAppDefault:
 
-  private val routes: Routes[Any, Nothing] = Routes(
-    GET / Root -> handler(Response.text(s"X-Auth ${BuildInfo.Version}")),
+  //  import scala.math.Fractional.Implicits.infixFractionalOps
+  private val Home = GET / Root -> handler(Response.text(s"X-Auth ${BuildInfo.Version}"))
 
-    // get /info
-    InfoController.GetInfo,
 
-    // todo: get /health
-    // todo: get /init/configure or /system/configure
-
-    // /system/tenants
-    TenantController.PostTenant,
-    // todo: ...
-
-    // Authentication
-    // Basic authentication by trusted client
-    // /auth
-//    AuthController.PostToken
-  )
+  private def routes(authC: AuthController) =
+    (Routes.empty :+ Home)
+      ++ InfoController.routes   // /info
+      ++ authC.routes            // /auth    -> Authentication routes
+      ++ TenantController.routes
+  // /tenants
+      // todo: get /health
+      // todo: get /init/configure or /system/configure
+      // todo: /system/tenants
   
 //  val serverConfig = Server.Config.default
 //    .port(1234)
@@ -62,14 +58,18 @@ object Main extends ZIOAppDefault:
       // First initialization
       sys <- ZIO.service[SystemService]
       _   <- sys.init
+      // Controller layers
+      authC <- ZIO.service[AuthController]
+      // Routes to serve
+      allRoutes = routes(authC)
       // Starting service
-      _   <- Server.serve(routes)
+      _  <- Server.serve(allRoutes)
     yield ()
 
     given Decoder[Locale]      = Decoder.decodeString map Locale.forLanguageTag
     given Decoder[ContactType] = Decoder.decodeString map ContactType.fromValue
 
-    val configLayer: ZLayer[Any, Throwable, AppConf] =
+    val config: ZLayer[Any, Throwable, AppConf] =
       ZLayer.fromZIO:
         for
           json   <- ZIO.succeed(os.read(os.pwd / "conf" / "application.conf"))
@@ -77,34 +77,72 @@ object Main extends ZIOAppDefault:
         yield config
 
     val templateLayer = TemplateServiceImpl.layer(os.pwd / "conf" / "template")
-    val messagingLayer = templateLayer >>> MessagingServiceImpl.layer
 
-    val mongoClient = configLayer >>> DefaultDriver.layer >>> DefaultMongoClient.layer
-    val environmentLayer = TimeService.layer ++ UuidService.layer >>> DefaultEnvironment.layer
+    val messaging = templateLayer
+      >>> MessagingServiceImpl.layer
+
+    val database = config
+      >>> DefaultDriver.layer
+      >>> DefaultMongoClient.layer
+
+    val environment = TimeService.layer ++ UuidService.layer
+      >>> DefaultEnvironment.layer
 
     val systemSettingRepository = MongoSystemSettingRepository.layer
-    val accountCodeRepository = MongoClientRepository.layer >>> MongoAccountCodeRepository.layer
+    val accountCodeRepository = MongoAccountCodeRepository.layer
 
-    val settings = MongoSystemSettingRepository.layer
-    val tenants = MongoTenantRepository.layer >>> TenantServiceImpl.layer
-    val workspaces = MongoWorkspaceRepository.layer >>> WorkspaceServiceImpl.layer
-    val clients = MongoClientRepository.layer >>> ClientServiceImpl.layer
-    val codes = accountCodeRepository >>> AccountCodeServiceImpl.layer
+    val settings = config
+      >>> database
+      >>> MongoSystemSettingRepository.layer
 
-    val users = MongoUserRepository.layer >>> UserServiceImpl.layer
-    val workspaceRegistry = MongoWorkspaceRepository.layer >>> WorkspaceRegistry.layer
+    val tenants = config
+      >>> database
+      >>> MongoTenantRepository.layer
+      >>> TenantServiceImpl.layer
 
-    val accountEventDispatcher = codes >>> AccountEventDispatcherImpl.layer
+    val workspaces = config
+      >>> database
+      >>> MongoWorkspaceRepository.layer
+      >>> WorkspaceServiceImpl.layer
+
+    val clients = config
+      >>> database
+      >>> MongoClientRepository.layer
+      >>> ClientServiceImpl.layer
+
+    val codes = MongoAccountCodeRepository.layer
+      >>> AccountCodeServiceImpl.layer
+
+    val users = config
+      >>> database
+      >>> MongoUserRepository.layer
+      >>> UserServiceImpl.layer
+
+    val workspaceRegistry = config
+      >>> database
+      >>> MongoWorkspaceRepository.layer
+      >>> WorkspaceRegistry.layer
+
+    val accountEventDispatcher = config
+      >>> database
+      >>> codes
+      >>> AccountEventDispatcherImpl.layer
 
     val systemService = ZLayer.make[SystemService](
-      configLayer, mongoClient, environmentLayer, accountEventDispatcher, ProviderRegistryImpl.layer,
-      workspaceRegistry, messagingLayer, systemSettingRepository, tenants, workspaces, clients, users, SystemServiceImpl.layer
+      config, database, environment, accountEventDispatcher, ProviderRegistryImpl.layer,
+      workspaceRegistry, messaging, systemSettingRepository, tenants, workspaces, clients, users,
+      SystemServiceImpl.layer
     )
+
+    val controllersLayer = AuthController.layer
+
+    // todo: handle graceful shutdown
+    // todo: handle idle timeout
 
     effect
       .as(ZIO.never)
       .flatten
       .provide(
-        Server.default ++ configLayer ++ systemService
+        Server.default ++ systemService ++ controllersLayer
       )
   }

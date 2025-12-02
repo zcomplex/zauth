@@ -4,8 +4,8 @@ import xauth.api.model.info.Info
 import xauth.generated.BuildInfo.*
 import zio.ZIO
 import zio.http.Method.GET
-import zio.http.Route
 import zio.http.endpoint.Endpoint
+import zio.http.{Route, Routes}
 
 object InfoController:
 
@@ -14,5 +14,7 @@ object InfoController:
   val GetInfo: Route[Any, Nothing] = Endpoint(GET / "info")
     .out[Info]
     .implement:
-        _ => ZIO.succeed:
-          Info(Name, Version, BuiltAt)
+      _ => ZIO.succeed:
+        Info(Name, Version, BuiltAt)
+
+  val routes: Routes[Any, Nothing] = Routes(GetInfo)

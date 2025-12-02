@@ -2,7 +2,7 @@ package xauth.api.tenant
 
 import zio.ZIO
 import zio.http.Method.GET
-import zio.http.Route
+import zio.http.{Route, Routes}
 import zio.http.endpoint.Endpoint
 
 object TenantController:
@@ -13,3 +13,5 @@ object TenantController:
       _ =>
         ZIO.succeed:
           ()
+
+  val routes: Routes[Any, Nothing] = Routes.empty
