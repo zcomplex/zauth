@@ -25,18 +25,10 @@
  */
 package xauth.api
 
-import xauth.api.ClientResolver.CtxOut
-import xauth.api.Main.validateEnv
-import xauth.api.UserResolver.{CxtOut, Env}
-import xauth.api.jwt.JwtHelper
-import xauth.core.application.usecase.WorkspaceRegistry
 import xauth.core.common.model.AuthRole
 import xauth.core.domain.client.model.Client
-import xauth.core.domain.client.port.ClientService
 import xauth.core.domain.user.model.User
-import xauth.core.domain.user.port.UserService
 import xauth.core.domain.workspace.model.Workspace
-import zio.ZIO
 import zio.http.*
 
 final case class ClientCredentials(id: String, secret: String)
@@ -56,18 +48,20 @@ sealed class RoleContext(override val workspace: Workspace, override val user: U
 
 object AuthenticationManager:
 
-  type WorkspaceAspectEnv = WorkspaceResolver.Env
-  type WorkspaceAspectCtxOut = WorkspaceResolver.CtxOut
+  private type AuthHandler[E, O] = Handler[E, Response, Request, (O, Request)]
+
+  private type WorkspaceHandlerEnv    = WorkspaceResolver.Env
+  private type WorkspaceHandlerCtxOut = WorkspaceResolver.CxtOut
 
   /**
    * Workspace Request Flow
    * Performs security checks for ingoing workspace requests.
    */
-  val WorkspaceAspect: HandlerAspect[WorkspaceAspectEnv, WorkspaceAspectCtxOut] =
-    WorkspaceResolver.aspect
+  val WorkspaceHandler: AuthHandler[WorkspaceHandlerEnv, WorkspaceHandlerCtxOut] =
+    WorkspaceResolver.handler
 
-  type ClientAspectEnv = WorkspaceAspectEnv & ClientResolver.Env
-  type ClientAspectCtxOut = (WorkspaceAspectCtxOut, ClientResolver.CtxOut)
+  private type ClientHandlerEnv    = WorkspaceHandlerEnv & ClientResolver.Env
+  private type ClientHandlerCtxOut = ClientResolver.CxtOut
 
   /**
    * Client Request Flow
@@ -75,40 +69,40 @@ object AuthenticationManager:
    * checks if http-basic authentication satisfies client requirements
    * like credentials and status.
    *
-   * This aspect performs checks for:
-   *   - Workspace 
+   * This handler performs checks for:
+   *   - Workspace
    */
-  val ClientAspect: HandlerAspect[ClientAspectEnv, ClientAspectCtxOut] =
-    WorkspaceAspect ++ ClientResolver.aspect
+  val ClientHandler: AuthHandler[ClientHandlerEnv, ClientHandlerCtxOut] =
+    WorkspaceHandler >>> ClientResolver.handler
 
-  type UserAspectEnv = WorkspaceAspectEnv & UserResolver.Env
-  type UserAspectCtxOut = (WorkspaceAspectCtxOut, UserResolver.CxtOut)
+  private type UserHandlerEnv    = WorkspaceHandlerEnv & UserResolver.Env
+  private type UserHandlerCxtOut = UserResolver.CxtOut
 
   /**
    * User Request Flow
    * Performs security checks for ingoing user requests,
    * checks if the request user is recognized, active
    * and if his credentials are valid.
-   * 
-   * This aspect performs checks for:
+   *
+   * This handler performs checks for:
    *   - Workspace
    *   - User
    */
-  val UserAspect: HandlerAspect[UserAspectEnv, UserAspectCtxOut] = 
-    WorkspaceAspect ++ UserResolver.aspect
+  val UserHandler: AuthHandler[UserHandlerEnv, UserHandlerCxtOut] =
+    WorkspaceHandler >>> UserResolver.handler
 
-  type RoleAspectEnv = UserAspectEnv & RoleChecker.Env
-  type RoleAspectCtxOut = (WorkspaceAspectCtxOut, UserResolver.CxtOut, RoleChecker.CtxOut)
+  private type RoleHandlerEnv    = UserHandlerEnv & RoleChecker.Env
+  private type RoleHandlerCxtOut = RoleChecker.CxtOut
 
   /**
    * Role Request Flow
    * Performs security checks for ingoing user roles requests,
    * checks if the recognized user matches at least one of the specified roles.
    *
-   * This aspect performs checks for:
+   * This handler performs checks for:
    *   - Workspace
    *   - User
    *   - Roles
    */
-  def RoleAspect(roles: AuthRole*): HandlerAspect[RoleAspectEnv, RoleAspectCtxOut] =
-    UserAspect ++ RoleChecker.roleAspect(roles*)
+  def RoleHandler(roles: AuthRole*): AuthHandler[RoleHandlerEnv, RoleHandlerCxtOut] =
+    UserHandler >>> RoleChecker.withRoles(roles *)
