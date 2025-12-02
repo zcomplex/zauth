@@ -14,7 +14,7 @@ def ver(patch: Int = patch) = s"$major.$minor.$patch"
 
 val ZioSchema     = "dev.zio" %% "zio-schema"      % "1.7.5"
 val ZioSchemaJson = "dev.zio" %% "zio-schema-json" % "1.7.5"
-val ZioLogging    = "dev.zio" %% "zio-logging"     % "2.5.1"
+val ZioLogging    = "dev.zio" %% "zio-logging"     % "2.5.2"
 
 val CirceCore         = "io.circe" %% "circe-core"           % "0.14.15"
 val CirceParser       = "io.circe" %% "circe-parser"         % "0.14.15"
@@ -29,9 +29,9 @@ lazy val scalaSettings = Seq(
 
 lazy val settings = Seq(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio"          % "2.1.22",
-    "dev.zio" %% "zio-test"     % "2.1.22" % Test,
-    "dev.zio" %% "zio-test-sbt" % "2.1.22" % Test,
+    "dev.zio" %% "zio"          % "2.1.23",
+    "dev.zio" %% "zio-test"     % "2.1.23" % Test,
+    "dev.zio" %% "zio-test-sbt" % "2.1.23" % Test,
     ZioSchema,
     "org.scalameta" %% "munit" % "1.2.1" % Test
   )
@@ -163,7 +163,7 @@ lazy val xauthApi = project
     name := Api,
     version := ver(0),
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio-http" % "3.5.1",
+      "dev.zio" %% "zio-http" % "3.7.0",
       // JWT
       "com.github.jwt-scala" %% "jwt-circe" % "11.0.3",
       // JWK
