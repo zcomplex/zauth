@@ -163,7 +163,7 @@ lazy val xauthApi = project
     name := Api,
     version := ver(0),
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio-http" % "3.7.0",
+      "dev.zio" %% "zio-http" % "3.7.1",
       // JWT
       "com.github.jwt-scala" %% "jwt-circe" % "11.0.3",
       // JWK
