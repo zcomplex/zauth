@@ -70,9 +70,22 @@ sealed class AuthController extends AbstractController:
 
   final case class ErrorResponse(message: String) derives JsonCodec, zio.schema.Schema
 
-  POST / "auth" / "token" -> (auth.ClientHandler >>> Handler.fromFunctionZIO[(ClientContext, Request)] {
-    case (c, r) => ZIO succeed Response.text("")
+  val authEnd = POST / "auth" / "token" -> (auth.ClientHandler >>> Handler.fromFunctionZIO[(ClientContext, Request)] {
+    case (c, r) =>
+      ZIO succeed Response.text(s"*** w:${c.workspace.id} -> c:${c.client.id}")
   })
+
+//  import zio.http.Routes._
+//  val PostToken3 =
+//    Endpoint(POST / "auth" / "token")
+//      .in[TokenRq]
+//      .out[TokenRs] ->
+//        Handler.fromFunctionZIO[TokenRq]: trq =>
+//          ZIO.serviceWith[ClientResolver.CxtOut] { cc =>
+////          case (cc: ClientResolver.CxtOut, r) =>
+//            ZIO succeed res
+//
+//      @@ ClientResolver.aspect
 
 //  val PostToken =
 //    Endpoint(POST / "auth" / "token")
@@ -91,15 +104,6 @@ sealed class AuthController extends AbstractController:
 //              _ <- ZIO.logInfo(s"w: ${c.workspace.id}, c: ${c.client.id}")
 //              response = res
 //            yield response
-
-  val businessLogic: Handler[Any, Response, (ClientContext, Request), Response] =
-    Handler.fromFunctionZIO[(ClientContext, Request)] {
-      case (ctx, request) =>
-        val client = ctx.client
-        ZIO.succeed(
-          Response.text(s"Successo! Richiesta gestita per il Client ID: ${client.id} nel Workspace: ${ctx.workspace.id}")
-        )
-    }
 
 //  HandlerAspect.inter
 
@@ -138,7 +142,7 @@ sealed class AuthController extends AbstractController:
 //      case (_, TokenRq(u, p)) if u == "u" && p == "p" => ZIO.succeed(res)
 //      case _ => ZIO.fail(ErrorResponse(message = "invalid credentials"))
 
-  val routes: Routes[Any, Nothing] = ???//Routes(loginEndpoint)
+  val routes: Routes[WorkspaceRegistry & ClientService, Nothing] = authEnd.toRoutes
   
 //  val PostToken: Route[Any, Nothing] = {
 //    val ep = Endpoint(POST / "auth" / "token")

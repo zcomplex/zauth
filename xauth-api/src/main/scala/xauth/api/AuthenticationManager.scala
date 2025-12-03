@@ -51,7 +51,7 @@ object AuthenticationManager:
   private type AuthHandler[E, O] = Handler[E, Response, Request, (O, Request)]
 
   private type WorkspaceHandlerEnv    = WorkspaceResolver.Env
-  private type WorkspaceHandlerCtxOut = WorkspaceResolver.CxtOut
+  private type WorkspaceHandlerCtxOut = WorkspaceResolver.CtxOut
 
   /**
    * Workspace Request Flow
@@ -61,7 +61,7 @@ object AuthenticationManager:
     WorkspaceResolver.handler
 
   private type ClientHandlerEnv    = WorkspaceHandlerEnv & ClientResolver.Env
-  private type ClientHandlerCtxOut = ClientResolver.CxtOut
+  private type ClientHandlerCtxOut = ClientResolver.CtxOut
 
   /**
    * Client Request Flow
@@ -76,7 +76,7 @@ object AuthenticationManager:
     WorkspaceHandler >>> ClientResolver.handler
 
   private type UserHandlerEnv    = WorkspaceHandlerEnv & UserResolver.Env
-  private type UserHandlerCxtOut = UserResolver.CxtOut
+  private type UserHandlerCtxOut = UserResolver.CtxOut
 
   /**
    * User Request Flow
@@ -88,11 +88,11 @@ object AuthenticationManager:
    *   - Workspace
    *   - User
    */
-  val UserHandler: AuthHandler[UserHandlerEnv, UserHandlerCxtOut] =
+  val UserHandler: AuthHandler[UserHandlerEnv, UserHandlerCtxOut] =
     WorkspaceHandler >>> UserResolver.handler
 
   private type RoleHandlerEnv    = UserHandlerEnv & RoleChecker.Env
-  private type RoleHandlerCxtOut = RoleChecker.CxtOut
+  private type RoleHandlerCtxOut = RoleChecker.CtxOut
 
   /**
    * Role Request Flow
@@ -104,5 +104,5 @@ object AuthenticationManager:
    *   - User
    *   - Roles
    */
-  def RoleHandler(roles: AuthRole*): AuthHandler[RoleHandlerEnv, RoleHandlerCxtOut] =
+  def RoleHandler(roles: AuthRole*): AuthHandler[RoleHandlerEnv, RoleHandlerCtxOut] =
     UserHandler >>> RoleChecker.withRoles(roles *)

@@ -25,11 +25,11 @@ object UserResolver:
           _.group("auth")
 
   type Env = JwtHelper & WorkspaceContext & UserService 
-  type CxtOut = UserContext
+  type CtxOut = UserContext
   
-  private type CxtIn = WorkspaceResolver.CxtOut
+  private type CxtIn = WorkspaceResolver.CtxOut
   
-  private type UserHandler = Handler[Env, Response, (CxtIn, Request), (CxtOut, Request)]
+  private type UserHandler = Handler[Env, Response, (CxtIn, Request), (CtxOut, Request)]
 
   /** Decodes token from request header and creates a user context. */
   val handler: UserHandler = 

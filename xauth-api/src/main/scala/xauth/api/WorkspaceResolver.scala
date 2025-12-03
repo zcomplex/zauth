@@ -20,9 +20,9 @@ object WorkspaceResolver:
         UuidRegex.findFirstMatchIn(v) map (m => Uuid(m.group(0)))
         
   type Env = WorkspaceRegistry
-  type CxtOut = WorkspaceContext
+  type CtxOut = WorkspaceContext
 
-  type WorkspaceHandler = Handler[Env, Response, Request, (CxtOut, Request)]
+  private type WorkspaceHandler = Handler[Env, Response, Request, (CtxOut, Request)]
 
   /** Retrieves the workspace by its identifier in http header and creates the workspace context. */
   val handler: WorkspaceHandler =

@@ -29,11 +29,11 @@ object ClientResolver:
           ClientCredentials(ss(0), ss(1))
 
   type Env = ClientService
-  type CxtOut = ClientContext
+  type CtxOut = ClientContext
 
-  private type CxtIn = WorkspaceResolver.CxtOut
+  private type CxtIn = WorkspaceResolver.CtxOut
 
-  private type ClientHandler = Handler[Env, Response, (CxtIn, Request), (CxtOut, Request)]
+  private type ClientHandler = Handler[Env, Response, (CxtIn, Request), (CtxOut, Request)]
 
   val handler: ClientHandler =
     Handler.fromFunctionZIO[(WorkspaceContext, Request)]:
@@ -52,7 +52,7 @@ object ClientResolver:
             .find(cc.id)(using w.workspace)
             .mapError(t => Response.internalServerError(t.getMessage))
             .flatMap:
-              case Some(c) if c.id == cc.id && c.secret.md5 == cc.secret =>
+              case Some(c) if c.id == cc.id && c.secret == cc.secret.md5 =>
                 ZIO succeed new ClientContext(w.workspace, c)
               case Some(_) =>
                 ZIO.logWarning(s"invalid client credentials for ${cc.id}:${cc.secret}") *>

@@ -1,5 +1,6 @@
 package xauth.infrastructure.client
 
+import reactivemongo.api.bson.BSONDocument
 import xauth.core.domain.client.model.Client
 import xauth.core.domain.client.port.ClientRepository
 import xauth.core.domain.workspace.model.Workspace
@@ -19,7 +20,11 @@ class MongoClientRepository(mongo: DefaultMongoClient) extends ClientRepository:
   override infix def findAll(using w: Workspace): Task[Seq[Client]] = ???
 
   /** Finds entity by its identifier. */
-  override infix def find(id: String)(using w: Workspace): Task[Option[Client]] = ???
+  override infix def find(id: String)(using w: Workspace): Task[Option[Client]] =
+    mongo.collection(ClientC) flatMap:
+      c =>
+        val s = BSONDocument("_id" -> id)
+        ZIO.fromFuture(implicit _ => c.find(s).one[ClientDo].map(_.map(_.toDomain)))
 
   /** Saves entity on persistence system. */
   override infix def save(c: Client)(using w: Workspace): Task[Client] =

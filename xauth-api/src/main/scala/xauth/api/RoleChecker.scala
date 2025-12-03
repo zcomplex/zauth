@@ -10,11 +10,11 @@ import zio.http.{Handler, Request, Response}
 object RoleChecker:
   
   type Env = WorkspaceRegistry & JwtHelper & UserService & UserContext
-  type CxtOut = RoleContext
+  type CtxOut = RoleContext
 
-  private type CxtIn = UserResolver.CxtOut
+  private type CxtIn = UserResolver.CtxOut
 
-  private type RoleHandler = Handler[Env, Response, (CxtIn, Request), (CxtOut, Request)]
+  private type RoleHandler = Handler[Env, Response, (CxtIn, Request), (CtxOut, Request)]
 
   def withRoles(rs: AuthRole*): RoleHandler =
     Handler.fromFunctionZIO[(CxtIn, Request)]:
