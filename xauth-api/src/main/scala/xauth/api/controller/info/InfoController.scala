@@ -36,7 +36,7 @@ object InfoController:
 
   import xauth.api.model.ziojson.info.schema
 
-  val GetInfo: Route[Any, Nothing] = Endpoint(GET / "info")
+  private val GetInfo: Route[Any, Nothing] = Endpoint(GET / "info")
     .out[Info]
     .implement:
       _ => ZIO.succeed:
