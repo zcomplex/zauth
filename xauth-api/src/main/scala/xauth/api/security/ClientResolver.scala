@@ -23,9 +23,9 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.api.auth
+package xauth.api.security
 
-import xauth.api.auth.{ClientContext, ClientCredentials, WorkspaceContext}
+import xauth.api.security.{ClientContext, ClientCredentials, WorkspaceContext}
 import xauth.api.ext.error
 import xauth.core.domain.client.port.ClientService
 import xauth.util.ext.md5

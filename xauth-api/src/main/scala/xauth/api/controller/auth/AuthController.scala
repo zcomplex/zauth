@@ -26,7 +26,7 @@
 package xauth.api.controller.auth
 
 import xauth.api.*
-import xauth.api.auth.{ClientContext, ClientCredentials}
+import xauth.api.security.{ClientContext, ClientCredentials}
 import xauth.api.controller.AbstractController
 import xauth.api.controller.auth.AuthController.{InvalidWorkspace, OutOfService, WorkspaceError, WorkspaceNotEnabled}
 import xauth.api.model.auth.*

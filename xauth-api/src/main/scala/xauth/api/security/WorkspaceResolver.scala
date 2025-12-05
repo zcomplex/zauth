@@ -23,9 +23,9 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.api.auth
+package xauth.api.security
 
-import xauth.api.auth.WorkspaceContext
+import xauth.api.security.WorkspaceContext
 import xauth.api.ext.error
 import xauth.core.application.usecase.WorkspaceRegistry
 import xauth.core.domain.workspace.model.WorkspaceStatus

@@ -25,7 +25,7 @@
  */
 package xauth.api.controller
 
-import xauth.api.auth.AuthenticationManager
+import xauth.api.security.AuthenticationManager
 
 abstract class AbstractController:
 
