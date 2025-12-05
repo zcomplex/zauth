@@ -1,36 +1,50 @@
-package xauth.api.auth
+/*
+ * Copyright (C) 2025-Present ZAuth.
+ * This file is part of ZAuth, Multi-Tenant Authentication System.
+ *
+ * This software is released under the ZAuth License V1, which is based on the
+ * GNU General Public License version 3 (GPLv3) as published by the Free Software
+ * Foundation, with an additional "No SaaS" clause.
+ *
+ * You may redistribute and/or modify it under the terms of the GPLv3 as
+ * published by the Free Software Foundation, with the added restriction that
+ * this software may not be provided as a public network service (SaaS,
+ * DBaaS, API, or similar) without prior written authorization from the author.
+ *
+ * THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+ * APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+ * HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+ * OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+ * IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+ * ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+ *
+ * This software is released under ZAuth License V1.
+ * See LICENSE for full terms.
+ */
+package xauth.api.controller.auth
 
-import xauth.api.AuthenticationManager.{AuthHandler, ClientHandler, ClientHandlerCtxOut, ClientHandlerEnv}
-import xauth.api.{AbstractController, AuthenticationManager, ClientContext, ClientCredentials, ClientResolver, WorkspaceContext, WorkspaceResolver}
+import xauth.api.*
+import xauth.api.auth.{ClientContext, ClientCredentials}
+import xauth.api.controller.AbstractController
+import xauth.api.controller.auth.AuthController.{InvalidWorkspace, OutOfService, WorkspaceError, WorkspaceNotEnabled}
 import xauth.api.model.auth.*
+import xauth.core.application.usecase.WorkspaceRegistry
+import xauth.core.domain.client.port.ClientService
 import zio.*
 import zio.ZIO.*
 import zio.http.*
-import zio.http.Method.{GET, POST}
-import zio.http.{Request, Route}
-import zio.http.endpoint.Endpoint
-import xauth.api.auth.AuthController.{InvalidWorkspace, OutOfService, WorkspaceError, WorkspaceNotEnabled}
-import xauth.api.jwt.JwtHelper
-import xauth.core.application.usecase.WorkspaceRegistry
-import xauth.core.common.model.AuthStatus.Enabled
-import xauth.core.domain.user.model.User
-import xauth.core.domain.user.port.UserService
-import xauth.core.domain.workspace.model.{Workspace, WorkspaceStatus}
-import xauth.core.domain.workspace.port.WorkspaceService
-import xauth.util.Uuid
-import zio.http.endpoint.openapi.OpenAPI.SecurityScheme.Http
-import zio.json.{JsonCodec, JsonDecoder, JsonEncoder}
-import xauth.api.model.ziojson.auth.given
-import xauth.core.domain.client.port.ClientService
-import zio.http.Status.NotFound
-import zio.http.codec.HttpCodec
-import zio.schema.{DeriveSchema, Schema, derived}
+import zio.http.Method.GET
+import zio.json.*
+import zio.json.ast.Json
+import zio.schema.{Schema, derived}
 
 //import io.circe.schema.Schema
 //import io.circe.parser._
 //import io.circe.generic.auto._
-import io.circe._
-import io.circe.generic.semiauto._
+//import io.circe._
+//import io.circe.generic.semiauto._
 
 sealed class AuthController extends AbstractController:
 
@@ -41,9 +55,9 @@ sealed class AuthController extends AbstractController:
   private final case class NotEnabledUser(override val message: String) extends TokenError
   private final case class UserNotFound(override val message: String) extends TokenError
   
-  type JsError = Json
-  
-  private final def err(m: String) = Json.obj("message" -> Json.fromString(m))
+//  type JsError = Json
+//
+//  private final def err(m: String) = Json.obj("message" -> Json.fromString(m))
 
 
   val res = TokenRs(
@@ -65,21 +79,59 @@ sealed class AuthController extends AbstractController:
 //  intStringRequestHandler.@@(auth.ClientAspect)
 //  import zio.json._
 
-  import xauth.api.model.ziojson.info.schema
-  import zio.schema.codec.JsonCodec.schemaBasedBinaryCodec
-
   final case class ErrorResponse(message: String) derives JsonCodec, zio.schema.Schema
 
-  val authEnd = POST / "auth" / "token" -> (auth.ClientHandler >>> Handler.fromFunctionZIO[(ClientContext, Request)] {
+  val authEnd = GET / "test" / "client" -> (auth.ClientHandler >>> Handler.fromFunctionZIO[(ClientContext, Request)] {
     case (c, r) =>
-      ZIO succeed Response.text(s"*** w:${c.workspace.id} -> c:${c.client.id}")
+
+      val json = Json.Obj(
+        "workspaceId" -> Json.Str(c.workspace.id.stringValue),
+        "clientId" -> Json.Str(c.client.id)
+      )
+
+      ZIO succeed Response.json(json.toJson)
   })
 
 //  import zio.http.Routes._
-//  val PostToken3 =
+//  val PostToken3: (Endpoint[Unit, Unit, ZNothing, TokenRs, None], Handler[ClientHandlerEnv, Response, Request, TokenRs]) =
 //    Endpoint(POST / "auth" / "token")
-//      .in[TokenRq]
-//      .out[TokenRs] ->
+////      .in[TokenRq]
+//      .out[TokenRs] -> (auth.ClientHandler >>> Handler.fromFunctionZIO[(ClientContext, Request)] {
+//        case (c, r) => ZIO succeed res
+//    })
+
+//    val PostToken3: Route[WorkspaceRegistry & ClientService, Nothing] = {
+//
+//      // --- Endpoint definition ---
+//      val endpoint =
+//        Endpoint(POST / "auth" / "token")
+//          .in[TokenRq] // <-- deserializzazione automatica
+//          .out[TokenRs] // <-- serializzazione automatica
+//
+//      // --- Handler ---
+//      val handler =
+//        Handler.fromFunctionZIO[(ClientContext, Request, TokenRq)] {
+//          case (ctx, req, tokenRq) =>
+//
+//            val res = TokenRs(
+//              tokenType = "tokenType",
+//              accessToken = "accessToken",
+//              expiresIn = 0,
+//              refreshToken = "refreshToken"
+//            )
+//
+//            ZIO.succeed(res)
+//        }
+//
+//      // --- Connect endpoint + handler and return a Route ---
+//      endpoint.implement(auth.ClientHandler >>> handler)
+//    }
+
+
+
+
+
+
 //        Handler.fromFunctionZIO[TokenRq]: trq =>
 //          ZIO.serviceWith[ClientResolver.CxtOut] { cc =>
 ////          case (cc: ClientResolver.CxtOut, r) =>
@@ -131,18 +183,8 @@ sealed class AuthController extends AbstractController:
   //          yield ()
   //
 
-  val sss: Handler[WorkspaceRegistry & ClientService, Response, Request, (ClientContext, Request)] =
-    auth.ClientHandler
 
-//  val clientAspect =
-//    Middleware.interceptIncomingHandler(auth.ClientHandler)
-
-//  val autk =
-//    Handler.fromFunctionZIO[(ClientContext, TokenRq)]:
-//      case (_, TokenRq(u, p)) if u == "u" && p == "p" => ZIO.succeed(res)
-//      case _ => ZIO.fail(ErrorResponse(message = "invalid credentials"))
-
-  val routes: Routes[WorkspaceRegistry & ClientService, Nothing] = authEnd.toRoutes
+  val routes: Routes[WorkspaceRegistry & ClientService, Nothing] = Routes(authEnd)
   
 //  val PostToken: Route[Any, Nothing] = {
 //    val ep = Endpoint(POST / "auth" / "token")
@@ -302,8 +344,6 @@ object AuthController:
     credentials.split(":") match
       case Array(u, p) if u == "admin" && p == "secret" => ZIO attempt Right(() -> ClientCredentials(u, p))
       case _ => ZIO fail new Throwable("Invalid credentials")
-
-  import xauth.api.model.ziojson.auth.given
   
 //  lazy val layer: URLayer[AuthenticationManager, AuthController] =
 //    ZLayer.fromZIO:
