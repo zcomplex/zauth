@@ -23,81 +23,73 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.user
+package xauth.infrastructure.auth
 
 import reactivemongo.api.bson.BSONDocument
+import xauth.core.domain.auth.model.AccessAttempt
+import xauth.core.domain.auth.port.AccessAttemptRepository
 import xauth.core.domain.user.model.User
-import xauth.core.domain.user.port.UserRepository
 import xauth.core.domain.workspace.model.Workspace
+import xauth.infrastructure.auth.AccessAttemptDo.*
 import xauth.infrastructure.mongo.DefaultMongoClient
-import xauth.infrastructure.mongo.WorkspaceCollection.User as UserC
-import xauth.infrastructure.user.UserDo.*
+import xauth.infrastructure.mongo.WorkspaceCollection.AccessAttempt as AccessAttemptC
 import xauth.util.Uuid
 import xauth.util.pagination.{PagedData, Pagination}
 import zio.{Task, URLayer, ZIO, ZLayer}
 
-class MongoUserRepository(mongo: DefaultMongoClient) extends UserRepository:
+class MongoAccessAttemptRepository(mongo: DefaultMongoClient) extends AccessAttemptRepository:
 
   import bson.handler.given
   import xauth.infrastructure.mongo.bson.handler.uuidBsonHandler
 
-  private def find(s: BSONDocument)(using w: Workspace): Task[Option[User]] =
-    mongo.collection(UserC) flatMap:
-      c => ZIO.fromFuture(implicit _ => c.find(s).one[UserDo].map(_.map(_.toDomain)))
+  override infix def findAll(using p: Pagination): Task[PagedData[AccessAttempt]] = ???
 
-  /** Finds all users with pagination. */
-  override def findAll(using p: Pagination): Task[PagedData[User]] = ???
-
-  /** Deletes user by its identifier. */
   override infix def delete(id: Uuid)(using w: Workspace): Task[Boolean] = ???
 
-  /** Finds all users. */
-  override infix def findAll(using w: Workspace): Task[Seq[User]] = ???
+  override infix def findAll(using w: Workspace): Task[Seq[AccessAttempt]] = ???
 
-  /** Finds user by its identifier. */
-  override infix def find(id: Uuid)(using w: Workspace): Task[Option[User]] =
-    find:
-      BSONDocument("_id" -> id)
+  override infix def find(id: Uuid)(using w: Workspace): Task[Option[AccessAttempt]] = ???
 
-  override infix def findByUsername(u: String)(using w: Workspace): Task[Option[User]] =
-    find:
-      BSONDocument("username" -> u)
-
-  /** Creates the user. */
-  override infix def create(u: User)(using w: Workspace): Task[User] =
-    mongo.collection(UserC) flatMap :
+  override infix def cleanup(user: User)(using w: Workspace): Task[Int] =
+    mongo.collection(AccessAttemptC) flatMap:
       c => ZIO.fromFuture:
-        implicit _ => c.insert.one(u.fromDomain) map { _ => u }
+        implicit x => c
+          .delete(ordered = false)
+          .one(BSONDocument("userId" -> user.id))
+          .map(_.n)
 
-  /** Updates the user. */
-  override infix def update(u: User)(using w: Workspace): Task[User] =
-    mongo.collection(UserC) flatMap:
+  override infix def create(a: AccessAttempt)(using w: Workspace): Task[AccessAttempt] =
+    mongo.collection(AccessAttemptC) flatMap:
       c => ZIO.fromFuture:
-        implicit _ =>
+        implicit x => c.insert.one(a.fromDomain) map { _ => a }
+
+  override infix def update(a: AccessAttempt)(using w: Workspace): Task[AccessAttempt] =
+    mongo.collection(AccessAttemptC) flatMap:
+      c => ZIO.fromFuture:
+        implicit x =>
           c.update
             .one(
-              q = BSONDocument("_id" -> u.id),
-              u = u.fromDomain,
+              q = BSONDocument("_id" -> a.id),
+              u = a.fromDomain,
               upsert = false
             )
-            .map(_ => u)
+            .map(_ => a)
 
-  /** Saves the user. */
-  override infix def save(u: User)(using w: Workspace): Task[User] =
-    mongo.collection(UserC) flatMap:
+  override infix def save(a: AccessAttempt)(using w: Workspace): Task[AccessAttempt] =
+    mongo.collection(AccessAttemptC) flatMap:
       c => ZIO.fromFuture:
-        implicit _ =>
+        implicit x =>
           c.update
             .one(
-              q = BSONDocument("_id" -> u.id),
-              u = u.fromDomain,
+              q = BSONDocument("_id" -> a.id),
+              u = a.fromDomain,
               upsert = true
             )
-            .map(_ => u)
+            .map(_ => a)
 
-object MongoUserRepository:
+object MongoAccessAttemptRepository:
 
-  lazy val layer: URLayer[DefaultMongoClient, MongoUserRepository] =
+  lazy val layer: URLayer[DefaultMongoClient, AccessAttemptRepository] =
     ZLayer.fromZIO:
       ZIO.service[DefaultMongoClient] map:
-        mongo => new MongoUserRepository(mongo)
+        mongo => new MongoAccessAttemptRepository(mongo)

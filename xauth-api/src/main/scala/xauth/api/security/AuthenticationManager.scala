@@ -49,7 +49,7 @@ sealed class RoleContext(override val workspace: Workspace, override val user: U
 
 object AuthenticationManager:
 
-  private type AuthHandler[E, O] = Handler[E, Response, Request, (O, Request)]
+  type AuthHandler[E, O] = Handler[E, Response, Request, (O, Request)]
 
   private type WorkspaceHandlerEnv    = WorkspaceResolver.Env
   private type WorkspaceHandlerCtxOut = WorkspaceResolver.CtxOut

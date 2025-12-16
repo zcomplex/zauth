@@ -1,8 +1,33 @@
+/*
+ * Copyright (C) 2025-Present ZAuth.
+ * This file is part of ZAuth, Multi-Tenant Authentication System.
+ *
+ * This software is released under the ZAuth License V1, which is based on the
+ * GNU General Public License version 3 (GPLv3) as published by the Free Software
+ * Foundation, with an additional "No SaaS" clause.
+ *
+ * You may redistribute and/or modify it under the terms of the GPLv3 as
+ * published by the Free Software Foundation, with the added restriction that
+ * this software may not be provided as a public network service (SaaS,
+ * DBaaS, API, or similar) without prior written authorization from the author.
+ *
+ * THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+ * APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+ * HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+ * OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+ * IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+ * ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+ *
+ * This software is released under ZAuth License V1.
+ * See LICENSE for full terms.
+ */
 package xauth.infrastructure.mongo
 
 import io.circe.{Json, JsonObject}
 import reactivemongo.api.bson.{BSONArray, BSONBoolean, BSONDateTime, BSONDocument, BSONDouble, BSONHandler, BSONInteger, BSONLong, BSONNull, BSONString, BSONValue}
-import xauth.core.common.model.{AuthRole, AuthStatus, ContactType, Permission}
+import xauth.core.common.model.*
 import xauth.util.DataFormat.iso8601DateFormat
 import xauth.util.Uuid
 import xauth.util.ext.{toEpochMilli, toEpochTime}
@@ -91,21 +116,25 @@ package object bson:
 
     // xauth.core.common.model
 
+    given authRoleBsonHandler: BSONHandler[AuthRole] = new BSONHandler[AuthRole]:
+      override def readTry(b: BSONValue): Try[AuthRole] = b.asTry[BSONString] map { s => AuthRole.fromValue(s.value) }
+      override def writeTry(s: AuthRole): Try[BSONValue] = Success(BSONString(s.value))
+
+    given authStatusBsonHandler: BSONHandler[AuthStatus] = new BSONHandler[AuthStatus]:
+      override def readTry(b: BSONValue): Try[AuthStatus] = b.asTry[BSONString] map { s => AuthStatus.fromValue(s.value) }
+      override def writeTry(s: AuthStatus): Try[BSONValue] = Success(BSONString(s.value))
+
+    given authTypeBsonHandler: BSONHandler[AuthType] = new BSONHandler[AuthType]:
+      override def readTry(b: BSONValue): Try[AuthType] = b.asTry[BSONString] map { s => AuthType.fromValue(s.value) }
+      override def writeTry(s: AuthType): Try[BSONValue] = Success(BSONString(s.value))
+
     given contactTypeBsonHandler: BSONHandler[ContactType] = new BSONHandler[ContactType]:
       override def readTry(b: BSONValue): Try[ContactType] = b.asTry[BSONString] map { s => ContactType.fromValue(s.value) }
       override def writeTry(s: ContactType): Try[BSONValue] = Success(BSONString(s.value))
   
-    given authRoleBsonHandler: BSONHandler[AuthRole] = new BSONHandler[AuthRole]:
-      override def readTry(b: BSONValue): Try[AuthRole] = b.asTry[BSONString] map { s => AuthRole.fromValue(s.value) }
-      override def writeTry(s: AuthRole): Try[BSONValue] = Success(BSONString(s.value))
-  
     given permissionBsonHandler: BSONHandler[Permission] = new BSONHandler[Permission]:
       override def readTry(b: BSONValue): Try[Permission] = b.asTry[BSONString] map { s => Permission.fromValue(s.value) }
       override def writeTry(s: Permission): Try[BSONValue] = Success(BSONString(s.value))
-  
-    given authStatusBsonHandler: BSONHandler[AuthStatus] = new BSONHandler[AuthStatus]:
-      override def readTry(b: BSONValue): Try[AuthStatus] = b.asTry[BSONString] map { s => AuthStatus.fromValue(s.value) }
-      override def writeTry(s: AuthStatus): Try[BSONValue] = Success(BSONString(s.value))
 
   object ext:
 

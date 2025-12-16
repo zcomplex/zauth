@@ -23,16 +23,25 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.mongo
+package xauth.core.domain.auth.port
 
-import xauth.util.mongo.WorkspaceCollection as WCollection
+import xauth.core.common.model.{AuthId, AccessId}
+import xauth.core.domain.auth.model.AccessAttempt
+import xauth.core.domain.client.model.Client
+import xauth.core.domain.user.model.{User, UserContact}
+import xauth.core.domain.workspace.model.Workspace
+import zio.Task
 
-/** Defines workspace persistence collections. */
-enum WorkspaceCollection(name: String) extends WCollection(name):
-  case AccessAttempt extends WorkspaceCollection("w_access_attempt")
-  case AccessLog     extends WorkspaceCollection("w_access_log")
-  case Client        extends WorkspaceCollection("w_client")
-  case Code          extends WorkspaceCollection("w_code")
-  case Invitation    extends WorkspaceCollection("w_invitation")
-  case RefreshToken  extends WorkspaceCollection("w_refresh_token")
-  case User          extends WorkspaceCollection("w_user")
+/** Handles the business logic for authentication attempts. */
+trait AccessAttemptService:
+
+  /** Cleanups all user access attempts. */
+  infix def cleanup(user: User)(using w: Workspace): Task[Int]
+
+  /** Retrieves the total user access attempts. */
+  infix def count(user: User)(using w: Workspace): Task[Int]
+
+  /** Saves the access attempts for the given username and client. */
+  infix def save(user: User, client: Client, accessId: AccessId, remoteAddress: String)(using w: Workspace): Task[AccessAttempt]
+
+  // todo: collect access information like device, timezone, network

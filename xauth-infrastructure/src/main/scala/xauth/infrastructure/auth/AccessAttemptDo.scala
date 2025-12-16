@@ -23,16 +23,47 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.mongo
+package xauth.infrastructure.auth
 
-import xauth.util.mongo.WorkspaceCollection as WCollection
+import xauth.core.common.model.AuthType
+import xauth.core.domain.auth.model.AccessAttempt
+import xauth.util.Uuid
 
-/** Defines workspace persistence collections. */
-enum WorkspaceCollection(name: String) extends WCollection(name):
-  case AccessAttempt extends WorkspaceCollection("w_access_attempt")
-  case AccessLog     extends WorkspaceCollection("w_access_log")
-  case Client        extends WorkspaceCollection("w_client")
-  case Code          extends WorkspaceCollection("w_code")
-  case Invitation    extends WorkspaceCollection("w_invitation")
-  case RefreshToken  extends WorkspaceCollection("w_refresh_token")
-  case User          extends WorkspaceCollection("w_user")
+import java.time.Instant
+
+case class AccessAttemptDo
+(
+  id: Uuid,
+  accessId: String,
+  authType: AuthType,
+  userId: Uuid,
+  clientId: String,
+  remoteAddress: String,
+  createdAt: Instant
+)
+
+object AccessAttemptDo:
+
+  extension (a: AccessAttempt)
+    def fromDomain: AccessAttemptDo =
+      AccessAttemptDo(
+        id = a.id,
+        accessId = a.accessId,
+        authType = a.authType,
+        userId = a.userId,
+        clientId = a.clientId,
+        remoteAddress = a.remoteAddress,
+        createdAt = a.createdAt
+      )
+
+  extension (a: AccessAttemptDo)
+    def toDomain: AccessAttempt =
+      AccessAttempt(
+        id = a.id,
+        accessId = a.accessId,
+        authType = a.authType,
+        userId = a.userId,
+        clientId = a.clientId,
+        remoteAddress = a.remoteAddress,
+        createdAt = a.createdAt
+      )

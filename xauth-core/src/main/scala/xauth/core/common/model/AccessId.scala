@@ -23,16 +23,30 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.mongo
+package xauth.core.common.model
 
-import xauth.util.mongo.WorkspaceCollection as WCollection
+import xauth.core.domain.user.model.UserContact
 
-/** Defines workspace persistence collections. */
-enum WorkspaceCollection(name: String) extends WCollection(name):
-  case AccessAttempt extends WorkspaceCollection("w_access_attempt")
-  case AccessLog     extends WorkspaceCollection("w_access_log")
-  case Client        extends WorkspaceCollection("w_client")
-  case Code          extends WorkspaceCollection("w_code")
-  case Invitation    extends WorkspaceCollection("w_invitation")
-  case RefreshToken  extends WorkspaceCollection("w_refresh_token")
-  case User          extends WorkspaceCollection("w_user")
+/** Defines the type that refers to the access identifier used for sign-in. */
+sealed trait AccessId:
+  val id: String
+  val authType: AuthType
+
+object AccessId:
+  private type Contact = UserContact
+  private type Id = String | UserContact
+
+  def apply(id: Id): AccessId =
+    id match
+      case u: String => UsernameId(u)
+      case c: Contact => ContactId(c)
+
+case class UsernameId(username: String) extends AccessId:
+  override val id: String = username
+  override val authType: AuthType = AuthType.Username
+
+case class ContactId(contact: UserContact) extends AccessId:
+  override val id: String = contact.value
+  override val authType: AuthType = contact.kind match
+    case ContactType.Email        => AuthType.Email
+    case ContactType.MobileNumber => AuthType.Mobile

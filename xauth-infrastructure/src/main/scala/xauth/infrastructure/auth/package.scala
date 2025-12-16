@@ -23,16 +23,15 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.mongo
+package xauth.infrastructure
 
-import xauth.util.mongo.WorkspaceCollection as WCollection
+import reactivemongo.api.bson.{BSONDocumentHandler, Macros}
 
-/** Defines workspace persistence collections. */
-enum WorkspaceCollection(name: String) extends WCollection(name):
-  case AccessAttempt extends WorkspaceCollection("w_access_attempt")
-  case AccessLog     extends WorkspaceCollection("w_access_log")
-  case Client        extends WorkspaceCollection("w_client")
-  case Code          extends WorkspaceCollection("w_code")
-  case Invitation    extends WorkspaceCollection("w_invitation")
-  case RefreshToken  extends WorkspaceCollection("w_refresh_token")
-  case User          extends WorkspaceCollection("w_user")
+package object auth:
+
+  object bson:
+    object handler:
+
+      import xauth.infrastructure.mongo.bson.handler.given
+
+      given accessAttemptBsonHandler: BSONDocumentHandler[AccessAttemptDo] = Macros.handler[AccessAttemptDo]

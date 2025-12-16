@@ -29,8 +29,10 @@ import io.circe.*
 import io.circe.config.parser.*
 import io.circe.generic.auto.*
 import xauth.api.controller.auth.AuthController
+import xauth.api.jwt.JwtHelper
 import xauth.core.application.usecase.*
 import xauth.core.common.model.ContactType
+import xauth.core.domain.auth.port.{AccessAttemptRepository, AccessAttemptService}
 import xauth.core.domain.client.port.{ClientRepository, ClientService}
 import xauth.core.domain.code.port.{AccountCodeRepository, AccountCodeService}
 import xauth.core.domain.configuration.model.{Configuration as AppConf, *}
@@ -43,6 +45,7 @@ import xauth.core.domain.workspace.port.{WorkspaceRepository, WorkspaceService}
 import xauth.core.spi.MessagingProvider.ProviderRegistry
 import xauth.core.spi.env.{TimeService, UuidService}
 import xauth.core.spi.{AccountEventDispatcher, MessagingService, TemplateService, env}
+import xauth.infrastructure.auth.MongoAccessAttemptRepository
 import xauth.infrastructure.client.MongoClientRepository
 import xauth.infrastructure.code.MongoAccountCodeRepository
 import xauth.infrastructure.messaging.provider.ProviderRegistryImpl
@@ -70,6 +73,9 @@ object Layer:
     >>> DefaultEnvironment.layer
 
   object service:
+    val accessAttempt: URLayer[env.Environment & AccessAttemptRepository, AccessAttemptService] =
+      AccessAttemptServiceImpl.layer
+
     val accountCode: URLayer[env.Environment & AccountCodeRepository, AccountCodeService] =
       AccountCodeServiceImpl.layer
 
@@ -101,6 +107,9 @@ object Layer:
         >>> DefaultMongoClient.layer
 
       object repository:
+        val accessAttempt: URLayer[DefaultMongoClient, AccessAttemptRepository] =
+          MongoAccessAttemptRepository.layer
+
         val accountCode: URLayer[DefaultMongoClient, AccountCodeRepository] =
           MongoAccountCodeRepository.layer
 
@@ -127,6 +136,9 @@ object Layer:
 
   val providerRegistry: ULayer[ProviderRegistry] =
     ProviderRegistryImpl.layer
+
+  val jwtHelper: URLayer[AppConf, JwtHelper] =
+    JwtHelper.layer
 
   object controller:
     val auth: ULayer[AuthController] = AuthController.layer

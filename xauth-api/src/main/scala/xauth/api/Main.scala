@@ -91,10 +91,12 @@ object Main extends ZIOAppDefault:
         layer.accountEventDispatcher,
         layer.config,
         layer.environment,
+        layer.jwtHelper,
         layer.providerRegistry,
         layer.workspaceRegistry,
 
         layer.persistence.mongodb.client,
+        layer.persistence.mongodb.repository.accessAttempt,
         layer.persistence.mongodb.repository.accountCode,
         layer.persistence.mongodb.repository.client,
         layer.persistence.mongodb.repository.systemSetting,
@@ -102,6 +104,7 @@ object Main extends ZIOAppDefault:
         layer.persistence.mongodb.repository.user,
         layer.persistence.mongodb.repository.workspace,
 
+        layer.service.accessAttempt,
         layer.service.accountCode,
         layer.service.client,
         layer.service.messaging,

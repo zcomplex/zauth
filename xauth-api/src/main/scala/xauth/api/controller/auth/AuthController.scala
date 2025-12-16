@@ -26,18 +26,30 @@
 package xauth.api.controller.auth
 
 import xauth.api.*
+import xauth.api.ext.error
 import xauth.api.security.{ClientContext, ClientCredentials}
 import xauth.api.controller.AbstractController
 import xauth.api.controller.auth.AuthController.{InvalidWorkspace, OutOfService, WorkspaceError, WorkspaceNotEnabled}
+import xauth.api.jwt.JwtHelper
 import xauth.api.model.auth.*
+import xauth.api.model.ziojson.auth.given
+import xauth.api.security.AuthenticationManager.{AuthHandler, ClientHandlerEnv}
 import xauth.core.application.usecase.WorkspaceRegistry
+import xauth.core.common.model.AccessId
+import xauth.core.common.model.AuthStatus.{Blocked, Enabled}
+import xauth.core.domain.auth.port.AccessAttemptService
 import xauth.core.domain.client.port.ClientService
+import xauth.core.domain.user.port.UserService
+import xauth.core.domain.workspace.model.Workspace
 import zio.*
 import zio.ZIO.*
 import zio.http.*
-import zio.http.Method.GET
+import zio.http.Method.{GET, POST}
+import zio.http.Status.{BadRequest, Forbidden, InternalServerError, ServiceUnavailable, Unauthorized}
+import zio.http.codec.TextBinaryCodec.fromSchema
 import zio.json.*
 import zio.json.ast.Json
+import zio.prelude.data.Optional.AllValuesAreNullable
 import zio.schema.{Schema, derived}
 
 //import io.circe.schema.Schema
@@ -92,166 +104,138 @@ sealed class AuthController extends AbstractController:
       ZIO succeed Response.json(json.toJson)
   })
 
-//  import zio.http.Routes._
-//  val PostToken3: (Endpoint[Unit, Unit, ZNothing, TokenRs, None], Handler[ClientHandlerEnv, Response, Request, TokenRs]) =
-//    Endpoint(POST / "auth" / "token")
-////      .in[TokenRq]
-//      .out[TokenRs] -> (auth.ClientHandler >>> Handler.fromFunctionZIO[(ClientContext, Request)] {
-//        case (c, r) => ZIO succeed res
-//    })
+  private lazy val NotAvailable =
+    Response.error(ServiceUnavailable, "auth.token:unavailable", "unavailable service, please try later")
 
-//    val PostToken3: Route[WorkspaceRegistry & ClientService, Nothing] = {
+  private lazy val InvalidCredentials =
+    Response.error(Unauthorized, "auth.token:invalid", "invalid user credentials")
+
+  private val Token = POST / "auth" / "token" -> auth
+    .ClientHandler
+    .andThen:
+      Handler.fromFunctionZIO[(ClientContext, Request)]:
+        case (c, r) =>
+
+          given w: Workspace = c.workspace
+
+          // todo: validation/json-schema validation
+          val effect = for
+            service <- ZIO.service[UserService]
+            attempts <- ZIO.service[AccessAttemptService]
+            jwtHelper <- ZIO.service[JwtHelper]
+
+            json <- r
+              .body.asString
+              .mapError(s => Response.error(BadRequest, "auth.token:undecodeable", s.getMessage))
+
+            body <- ZIO
+              .fromEither(json.fromJson[TokenRq])
+              .mapError(s => Response.error(BadRequest, "auth.token:undecodeable", s))
+
+            // retrieving user
+            user <- service
+              .findByUsername(body.username)
+              .catchAll(_ => ZIO succeed NotAvailable)
+
+            response <- user match
+              // user is enabled and can obtain an access token
+              case Some(u) if u.status == Enabled =>
+
+                // access granted
+                if service.checkWithSalt(u.salt, body.password, u.password) then
+
+                  // allowed applications for the user
+                  val apps = u.applications.filter:
+                    a => w.configuration.applications.contains(a.name)
+
+                  for
+                    // generating access and refresh tokens and making response object
+                    token <- jwtHelper
+                      .createToken(u.id, w.id, u.roles, apps, u.parentId)// map: t =>
+                      .mapError(s => Response.error(InternalServerError, "auth.token:tokenization", s))
+                      .map: t =>
+                        TokenRs(
+                          tokenType    = JwtHelper.TokenType,
+                          accessToken  = t,
+                          expiresIn    = w.configuration.auth.jwt.expiration.accessToken,
+                          refreshToken = JwtHelper.createRefreshToken
+                        )
+
+                    // cleaning user authentication attempts
+                    _ <- attempts
+                      .cleanup(u)
+                      .forkDaemon
+
+                  yield Response.json(token.toJson)
+
+                  // todo: store access log?
+                  // todo: notify event into system bus?
+
+                  // todo: saving refresh token
+//                  authRefreshTokenService.save(
+//                    tokenRes.refreshToken,
+//                    request.credentials.id,
+//                    authUser.id
+//                  )
+
+                // todo: store access log
+
+                // access denied
+                else for
+                  // storing login attempt
+                  _ <- attempts
+                    .save(u, c.client, AccessId(body.username), r.remoteAddress.map(_.toString) getOrElse "")
+                    .catchAll: t =>
+                      ZIO.logWarning(s"unable to save access attempt for user ${u.id}: ${t.getMessage}")
+
+// todo:                      
+//   progressive delay per identity
+//   IP rate limiting
+//   captcha after a lot of failed attempts
+//   logging & anomaly detection
+//     * IP/source
+//     * device/browser fingerprint
+//     * geo position
+//     * velocity anomalies
+//     * login from new geographical areas
+//   notification
+//     * SOC/monitoring
+//     * ask 2FA after failed attempts
 //
-//      // --- Endpoint definition ---
-//      val endpoint =
-//        Endpoint(POST / "auth" / "token")
-//          .in[TokenRq] // <-- deserializzazione automatica
-//          .out[TokenRs] // <-- serializzazione automatica
-//
-//      // --- Handler ---
-//      val handler =
-//        Handler.fromFunctionZIO[(ClientContext, Request, TokenRq)] {
-//          case (ctx, req, tokenRq) =>
-//
-//            val res = TokenRs(
-//              tokenType = "tokenType",
-//              accessToken = "accessToken",
-//              expiresIn = 0,
-//              refreshToken = "refreshToken"
-//            )
-//
-//            ZIO.succeed(res)
-//        }
-//
-//      // --- Connect endpoint + handler and return a Route ---
-//      endpoint.implement(auth.ClientHandler >>> handler)
-//    }
+//                // counting total attempts
+//                n <- attempts
+//                  .count(user)
+//                  .catchAll: t =>
+//                    ZIO.logWarning(s"unable to count access attempts for user ${user.id}: ${t.getMessage}")
+//                    0
 
+                  // reached the maximum failed access attempt, blocking user
+//                  _ <- ZIO
+//                    .when(n + 1 >= w.configuration.auth.maxLoginAttempts):
+//                      ZIO.logWarning(s"access attempt number $n for user ${body.username}")
+//                        *> service.updateStatusById(user.id, Blocked) // todo: no!
+                  
+                  // fail: invalid credentials
+//                  f <- ZIO fail InvalidCredentials
+                  f <- ZIO succeed InvalidCredentials
 
+                yield f
 
+              case Some(u) => // user is not enabled to obtain an access token
+                ZIO succeed Response.error(Forbidden, "auth.token:disabled", s"account is currently ${u.status.value.toLowerCase}")
 
+              case _ =>
+                ZIO succeed InvalidCredentials
 
+          yield response
 
-//        Handler.fromFunctionZIO[TokenRq]: trq =>
-//          ZIO.serviceWith[ClientResolver.CxtOut] { cc =>
-////          case (cc: ClientResolver.CxtOut, r) =>
-//            ZIO succeed res
-//
-//      @@ ClientResolver.aspect
+          val xxxx = effect
+//            .catchAll(_ => ZIO succeed Response.json(res.toJson))
 
-//  val PostToken =
-//    Endpoint(POST / "auth" / "token")
-//      .in[TokenRq]
-//      .out[TokenRs]
-//////      .outError[InvalidPassword](Status.Forbidden)
-//////      .outError[NotEnabledUser](Status.Forbidden)
-//////      .outError[UserNotFound](Status.Unauthorized)
-////      // todo: json schema validation
-//      .implementAsZIO:
-//        x => x
-//          case (request, body, c) =>
-//
-//            for
-////              (c, _) <- auth.ClientHandler(request)
-//              _ <- ZIO.logInfo(s"w: ${c.workspace.id}, c: ${c.client.id}")
-//              response = res
-//            yield response
-
-//  HandlerAspect.inter
-
-//            ZIO.succeed(res)
-
-//  val loginEndpoint = Endpoint(POST / "auth" / "token")
-//    .in[TokenRq]
-//    .out[TokenRs]
-//    .outErrors(
-//      HttpCodec.error[ErrorResponse](Status.BadRequest),
-//      HttpCodec.error[ErrorResponse](Status.Unauthorized)
-//    )
-//    .implementHandler:
-//      Handler.fromFunctionZIO[Request]:
-//        r =>
-//          for
-//            _ <- auth.ClientHandler(r)
-//            s <- ZIO.succeed(res)
-//          yield s
-
-  //      Handler.fromFunctionZIO[TokenRq]: body =>
-  //        ZIO.serviceWithZIO[Request]: r =>
-  //          for
-  //            xxx <- ClientHandler(r)
-  //          yield ()
-  //
-
-
-  val routes: Routes[WorkspaceRegistry & ClientService, Nothing] = Routes(authEnd)
+          xxxx
   
-//  val PostToken: Route[Any, Nothing] = {
-//    val ep = Endpoint(POST / "auth" / "token")
-//      .in[TokenRq]
-//      .out[TokenRs]
-//
-//      
-//      
-//      // todo: json schema validation
-//      .implementHandler:
-//        Handler.fromFunctionZIO[Request]: r =>
-////          for
-////            _ <- auth.ClientHandler(r)
-//////            (c, r2) <- auth.UserHandler(r1)
-////            
-//////            trq <- r.body.to[TokenRq]
-////          yield ()
-//
-//          ZIO.succeed(res)
-//          
-////        Handler.fromFunctionZIO[TokenRq] { body =>
-////          val res = TokenRs(
-////            "tokenType",
-////            "accessToken",
-////            0,
-////            "refreshToken"
-////          )
-////          ZIO.succeed(res)
-////        }
-//
-//    ep.implementHandler {
-//        Handler.fromFunctionZIO[TokenRq] { body =>
-//          val res = TokenRs(
-//            "tokenType",
-//            "accessToken",
-//            0,
-//            "refreshToken"
-//          )
-//          ZIO.succeed(res)
-//        }
-//    }
-//  }
-
-
-//        Handler.fromFunctionZIO[(Request, TokenRq, ClientContext)] {
-//          case (request, body, context) =>
-//
-//            given workspace: Workspace = context.workspace
-//
-////            Response.bo:
-//              val res = TokenRs(
-//                  "tokenType",
-//                  "accessToken",
-//                  0,
-//                  "refreshToken"
-//              )
-//
-//            import zio.schema.codec.JsonCodec
-//            implicit val sss: Schema[TokenRs] = DeriveSchema.gen
-//
-//            def toJson[A](a: A)(using schema: Schema[A]): String = ???
-////              JsonCodec.encoder(schema).encodeJson(a).toString
-//
-//            ZIO.succeed:
-//              res
-//
-//        } @@ auth.ClientAspect
+  val routes = Routes(authEnd, Token)
+//  val routes = Routes.fromIterable(List(Token))
 
 // Basic authentication by trusted client
 
@@ -336,19 +320,14 @@ object AuthController:
   sealed trait WorkspaceError(status: Status, val message: String) derives zio.json.JsonCodec
   case class MissingWorkspaceHeader(m: String) extends WorkspaceError(Status.BadRequest, m)
   case class WorkspaceNotFound(m: String) extends WorkspaceError(Status.Unauthorized, m)
-  case class WorkspaceNotEnabled(m: String) extends WorkspaceError(Status.Forbidden, m)
+  case class WorkspaceNotEnabled(m: String) extends WorkspaceError(Forbidden, m)
   case class InvalidWorkspace(m: String) extends WorkspaceError(Status.Unauthorized, m)
-  case class OutOfService(m: String) extends WorkspaceError(Status.ServiceUnavailable, m)
+  case class OutOfService(m: String) extends WorkspaceError(ServiceUnavailable, m)
 
   def withClientCredentials(credentials: String): Task[Either[Unit, (Unit, ClientCredentials)]] =
     credentials.split(":") match
       case Array(u, p) if u == "admin" && p == "secret" => ZIO attempt Right(() -> ClientCredentials(u, p))
       case _ => ZIO fail new Throwable("Invalid credentials")
-  
-//  lazy val layer: URLayer[AuthenticationManager, AuthController] =
-//    ZLayer.fromZIO:
-//      ZIO.service[AuthenticationManager] map:
-//        new AuthController(_)
 
 
 //  import io.circe.schema.Schema
