@@ -9,7 +9,9 @@
   <br />
 </p>
 
-ZAuth is a multi-tenant authentication service and much more.
+ZAuth is a multi-tenant authentication service and much more,
+it's also known as XAuth and represents the natural evolution that project.
+
 It allows you to manage the entire user lifecycle for your companies.
 It is written in Scala, uses ZIO, and is highly performant and configurable.
 
