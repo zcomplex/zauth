@@ -32,7 +32,7 @@ import xauth.api.controller.auth.AuthController
 import xauth.api.jwt.JwtHelper
 import xauth.core.application.usecase.*
 import xauth.core.common.model.ContactType
-import xauth.core.domain.auth.port.{AccessAttemptRepository, AccessAttemptService}
+import xauth.core.domain.auth.port.{AccessAttemptRepository, AccessAttemptService, RefreshTokenRepository, RefreshTokenService}
 import xauth.core.domain.client.port.{ClientRepository, ClientService}
 import xauth.core.domain.code.port.{AccountCodeRepository, AccountCodeService}
 import xauth.core.domain.configuration.model.{Configuration as AppConf, *}
@@ -45,7 +45,7 @@ import xauth.core.domain.workspace.port.{WorkspaceRepository, WorkspaceService}
 import xauth.core.spi.MessagingProvider.ProviderRegistry
 import xauth.core.spi.env.{TimeService, UuidService}
 import xauth.core.spi.{AccountEventDispatcher, MessagingService, TemplateService, env}
-import xauth.infrastructure.auth.MongoAccessAttemptRepository
+import xauth.infrastructure.auth.{MongoAccessAttemptRepository, MongoRefreshTokenRepository}
 import xauth.infrastructure.client.MongoClientRepository
 import xauth.infrastructure.code.MongoAccountCodeRepository
 import xauth.infrastructure.messaging.provider.ProviderRegistryImpl
@@ -97,6 +97,9 @@ object Layer:
     val workspace: URLayer[WorkspaceRegistry & WorkspaceRepository & AppConf, WorkspaceService] =
       WorkspaceServiceImpl.layer
 
+    val refreshToken: URLayer[RefreshTokenRepository, RefreshTokenService] =
+      RefreshTokenServiceImpl.layer
+
     val system: URLayer[SystemSettingRepository & TenantService & WorkspaceService & ClientService & UserService & AppConf, SystemService] =
       SystemServiceImpl.layer
 
@@ -121,6 +124,9 @@ object Layer:
 
         val client: URLayer[DefaultMongoClient, ClientRepository] =
           MongoClientRepository.layer
+
+        val refreshToken: URLayer[DefaultMongoClient, RefreshTokenRepository] =
+          MongoRefreshTokenRepository.layer
 
         val systemSetting: URLayer[DefaultMongoClient, SystemSettingRepository] =
           MongoSystemSettingRepository.layer

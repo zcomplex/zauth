@@ -26,30 +26,25 @@
 package xauth.api.controller.auth
 
 import xauth.api.*
-import xauth.api.ext.error
-import xauth.api.security.{ClientContext, ClientCredentials}
 import xauth.api.controller.AbstractController
 import xauth.api.controller.auth.AuthController.{InvalidWorkspace, OutOfService, WorkspaceError, WorkspaceNotEnabled}
+import xauth.api.ext.error
 import xauth.api.jwt.JwtHelper
 import xauth.api.model.auth.*
 import xauth.api.model.ziojson.auth.given
-import xauth.api.security.AuthenticationManager.{AuthHandler, ClientHandlerEnv}
-import xauth.core.application.usecase.WorkspaceRegistry
+import xauth.api.security.{ClientContext, ClientCredentials}
 import xauth.core.common.model.AccessId
-import xauth.core.common.model.AuthStatus.{Blocked, Enabled}
-import xauth.core.domain.auth.port.AccessAttemptService
-import xauth.core.domain.client.port.ClientService
+import xauth.core.common.model.AuthStatus.Enabled
+import xauth.core.domain.auth.port.{AccessAttemptService, RefreshTokenService}
 import xauth.core.domain.user.port.UserService
 import xauth.core.domain.workspace.model.Workspace
 import zio.*
 import zio.ZIO.*
 import zio.http.*
 import zio.http.Method.{GET, POST}
-import zio.http.Status.{BadRequest, Forbidden, InternalServerError, ServiceUnavailable, Unauthorized}
-import zio.http.codec.TextBinaryCodec.fromSchema
+import zio.http.Status.*
 import zio.json.*
 import zio.json.ast.Json
-import zio.prelude.data.Optional.AllValuesAreNullable
 import zio.schema.{Schema, derived}
 
 //import io.circe.schema.Schema
@@ -122,6 +117,7 @@ sealed class AuthController extends AbstractController:
           val effect = for
             service <- ZIO.service[UserService]
             attempts <- ZIO.service[AccessAttemptService]
+            refresh <- ZIO.service[RefreshTokenService]
             jwtHelper <- ZIO.service[JwtHelper]
 
             json <- r
@@ -161,6 +157,11 @@ sealed class AuthController extends AbstractController:
                           refreshToken = JwtHelper.createRefreshToken
                         )
 
+                    // saving refresh token
+                    _ <- refresh
+                      .save(token.refreshToken, u, c.client)
+                      .forkDaemon
+
                     // cleaning user authentication attempts
                     _ <- attempts
                       .cleanup(u)
@@ -168,17 +169,8 @@ sealed class AuthController extends AbstractController:
 
                   yield Response.json(token.toJson)
 
-                  // todo: store access log?
                   // todo: notify event into system bus?
-
-                  // todo: saving refresh token
-//                  authRefreshTokenService.save(
-//                    tokenRes.refreshToken,
-//                    request.credentials.id,
-//                    authUser.id
-//                  )
-
-                // todo: store access log
+                  // todo: store access log
 
                 // access denied
                 else for
@@ -235,81 +227,6 @@ sealed class AuthController extends AbstractController:
           xxxx
   
   val routes = Routes(authEnd, Token)
-//  val routes = Routes.fromIterable(List(Token))
-
-// Basic authentication by trusted client
-
-//  val PostToken: Route[WorkspaceRegistry, Nothing] =
-//    Endpoint(POST / "auth" / "token")
-//      .in[TokenRq]
-//      .out[TokenRs]
-////      .outError[InvalidPassword](Status.Forbidden)
-////      .outError[NotEnabledUser](Status.Forbidden)
-////      .outError[UserNotFound](Status.Unauthorized)
-//      // todo: json schema validation
-//      .implementHandler:
-//        Handler.fromFunctionZIO[(Request, TokenRq, ClientContext)] {
-//          case (request, body, context) =>
-//
-//            given workspace: Workspace = context.workspace
-//
-//            // verifying current user status
-//            for
-//              userService <- ZIO.service[UserService]
-//              jwtHelper <- ZIO.service[JwtHelper]
-//
-//              token <- userService
-//                .findByUsername(body.username) flatMap:
-//                  case Some(u) if u.status == Enabled =>
-//                    // check user and password
-//                    if userService.checkWithSalt(u.salt, body.password, u.password) then
-//                      // todo: cleaning user authentication attempts
-//                      // todo: authAccessAttemptService.deleteByUsername(body.username)
-//
-//                      // computing all applications currently configured in workspace
-//                      val apps = u.applications.filter(a => workspace.configuration.applications.contains(a.name))
-//
-//                      for
-//                        // creating new bearer token
-//                        accessToken <- jwtHelper.createToken(u.id, context.workspace.id, u.roles, apps, u.parentId)
-//                        token = TokenRs(
-//                          tokenType = JwtHelper.TokenType,
-//                          accessToken = accessToken,
-//                          expiresIn = context.workspace.configuration.jwt.expiration.accessToken,
-//                          refreshToken = JwtHelper.createRefreshToken
-//                        )
-//                      yield token
-//
-//                      // todo: saving refresh token
-//                      /* todo: authRefreshTokenService.save(
-//                        tokenRes.refreshToken,
-//                        request.credentials.id,
-//                        authUser.id
-//                      )*/
-//
-//                      // todo: store access log
-//                      // returning access token to the client
-//
-////                      t.map(x => Response.json(x))
-////                      Response.ok.
-//
-//                    else { // wrong password
-//                      // todo: wrong password
-//                      // todo: storing login attempt
-//                      Response.forbidden
-//                      ZIO fail InvalidPassword("invalid user credentials")
-//                    }
-//
-//                  case Some(u) => // not enabled user
-//                    ZIO fail NotEnabledUser(s"account is currently '${u.status.value}'")
-//
-//                  case None => // user not found
-//                    ZIO fail UserNotFound(s"invalid user credentials")
-//
-//              _ <- ZIO.logInfo(s"new token request from ${request.remoteAddress} for client ${context.client.id}")
-//            yield token
-//
-//        } @@ auth.ClientAspect
 
 object AuthController:
 

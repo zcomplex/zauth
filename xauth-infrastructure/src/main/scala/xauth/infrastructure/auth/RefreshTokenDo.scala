@@ -23,16 +23,42 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure
+package xauth.infrastructure.auth
 
-import reactivemongo.api.bson.{BSONDocumentHandler, Macros}
+import reactivemongo.api.bson.Macros.Annotations.Key
+import xauth.core.domain.auth.model.RefreshToken
+import xauth.util.Uuid
 
-package object auth:
+import java.time.Instant
 
-  object bson:
-    object handler:
+case class RefreshTokenDo
+(
+  @Key("_id")
+  token: String,
+  clientId: String,
+  userId: Uuid,
+  expiresAt: Instant,
+  registeredAt: Instant
+)
 
-      import xauth.infrastructure.mongo.bson.handler.given
+object RefreshTokenDo:
 
-      given accessAttemptBsonHandler: BSONDocumentHandler[AccessAttemptDo] = Macros.handler[AccessAttemptDo]
-      given refreshTokenBsonHandler: BSONDocumentHandler[RefreshTokenDo] = Macros.handler[RefreshTokenDo]
+  extension (r: RefreshToken)
+    def fromDomain: RefreshTokenDo =
+      RefreshTokenDo(
+        token = r.token,
+        clientId = r.clientId,
+        userId = r.userId,
+        expiresAt = r.expiresAt,
+        registeredAt = r.createdAt
+      )
+
+  extension (r: RefreshTokenDo)
+    def toDomain: RefreshToken =
+      RefreshToken(
+        token = r.token,
+        clientId = r.clientId,
+        userId = r.userId,
+        expiresAt = r.expiresAt,
+        createdAt = r.registeredAt
+      )

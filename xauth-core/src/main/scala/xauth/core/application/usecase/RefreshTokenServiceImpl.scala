@@ -23,45 +23,45 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.client
+package xauth.core.application.usecase
 
-import reactivemongo.api.bson.Macros.Annotations.Key
+import xauth.core.domain.auth.model.RefreshToken
+import xauth.core.domain.auth.port.{RefreshTokenRepository, RefreshTokenService}
 import xauth.core.domain.client.model.Client
-import xauth.util.Uuid
+import xauth.core.domain.user.model.User
+import xauth.core.domain.workspace.model.Workspace
+import zio.{Task, URLayer, ZIO, ZLayer}
 
 import java.time.Instant
 
-case class ClientDo
-(
-  @Key("_id")
-  id: String,
-  secret: String,
-  createdAt: Instant,
-  createdBy: Uuid,
-  updatedAt: Instant,
-  updatedBy: Uuid
-)
+private class RefreshTokenServiceImpl(repository: RefreshTokenRepository) extends RefreshTokenService:
 
-object ClientDo:
+  /** Cleanups all user refresh tokens. */
+  override infix def cleanup(u: User)(using w: Workspace): Task[Int] =
+    repository cleanup u
+
+  /** Retrieves the total user refresh tokens. */
+  override infix def count(u: User)(using w: Workspace): Task[Int] =
+    repository cleanup u
+
+  /** Saves the refresh token for the given user and client. */
+  override infix def save(t: String, u: User, c: Client)(using w: Workspace): Task[RefreshToken] =
+    val now = Instant.now
+    val expiresAt = now.plusSeconds(w.configuration.auth.jwt.expiration.refreshToken)
   
-  extension (c: Client)
-    def fromDomain: ClientDo =
-      ClientDo(
-        id = c.id,
-        secret = c.secret,
-        createdAt = c.createdAt,
-        createdBy = c.createdBy,
-        updatedAt = c.updatedAt,
-        updatedBy = c.updatedBy
-      )
+    val r = RefreshToken(
+      token = t,
+      clientId = c.id,
+      userId = u.id,
+      expiresAt = expiresAt,
+      createdAt = now
+    )
 
-  extension (c: ClientDo)
-    def toDomain: Client =
-      Client(
-        id = c.id,
-        secret = c.secret,
-        createdAt = c.createdAt,
-        createdBy = c.createdBy,
-        updatedAt = c.updatedAt,
-        updatedBy = c.updatedBy
-      )
+    repository save r
+
+object RefreshTokenServiceImpl:
+
+  lazy val layer: URLayer[RefreshTokenRepository, RefreshTokenService] =
+    ZLayer.fromZIO:
+      ZIO.serviceWith[RefreshTokenRepository]: repository =>
+        new RefreshTokenServiceImpl(repository)

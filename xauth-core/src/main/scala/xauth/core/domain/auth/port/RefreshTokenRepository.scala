@@ -23,16 +23,15 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure
+package xauth.core.domain.auth.port
 
-import reactivemongo.api.bson.{BSONDocumentHandler, Macros}
+import xauth.core.domain.auth.model.RefreshToken
+import xauth.core.domain.user.model.User
+import xauth.core.domain.workspace.model.Workspace
+import xauth.core.spi.{PagedRepository, WorkspaceRepository}
+import zio.Task
 
-package object auth:
+trait RefreshTokenRepository extends WorkspaceRepository[RefreshToken, String] with PagedRepository[RefreshToken]:
 
-  object bson:
-    object handler:
-
-      import xauth.infrastructure.mongo.bson.handler.given
-
-      given accessAttemptBsonHandler: BSONDocumentHandler[AccessAttemptDo] = Macros.handler[AccessAttemptDo]
-      given refreshTokenBsonHandler: BSONDocumentHandler[RefreshTokenDo] = Macros.handler[RefreshTokenDo]
+  /** Cleanups all user refresh tokens. */
+  infix def cleanup(u: User)(using w: Workspace): Task[Int]
