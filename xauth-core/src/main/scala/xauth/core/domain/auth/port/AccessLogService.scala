@@ -25,4 +25,9 @@
  */
 package xauth.core.domain.auth.port
 
-trait AccessLogService
+import xauth.core.domain.auth.model.AccessLog
+import zio.Task
+
+trait AccessLogService:
+  
+  infix def save: Task[AccessLog]

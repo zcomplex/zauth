@@ -23,17 +23,14 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.mongo
+package xauth.core.domain.event.model
 
-import xauth.util.mongo.WorkspaceCollection as WCollection
+sealed trait EventType
 
-/** Defines workspace persistence collections. */
-enum WorkspaceCollection(name: String) extends WCollection(name):
-  case AccessAttempt extends WorkspaceCollection("w_access_attempt")
-  case AccessLog     extends WorkspaceCollection("w_access_log")
-  case Client        extends WorkspaceCollection("w_client")
-  case Code          extends WorkspaceCollection("w_code")
-  case Event         extends WorkspaceCollection("w_event")
-  case Invitation    extends WorkspaceCollection("w_invitation")
-  case RefreshToken  extends WorkspaceCollection("w_refresh_token")
-  case User          extends WorkspaceCollection("w_user")
+object EventType:
+
+  enum SystemEventType extends EventType:
+    case SystemStarted
+
+  enum WorkspaceEventType extends EventType:
+    case AuthenticationSucceeded

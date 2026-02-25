@@ -23,17 +23,21 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.mongo
 
-import xauth.util.mongo.WorkspaceCollection as WCollection
+package xauth.core.domain.event.port
 
-/** Defines workspace persistence collections. */
-enum WorkspaceCollection(name: String) extends WCollection(name):
-  case AccessAttempt extends WorkspaceCollection("w_access_attempt")
-  case AccessLog     extends WorkspaceCollection("w_access_log")
-  case Client        extends WorkspaceCollection("w_client")
-  case Code          extends WorkspaceCollection("w_code")
-  case Event         extends WorkspaceCollection("w_event")
-  case Invitation    extends WorkspaceCollection("w_invitation")
-  case RefreshToken  extends WorkspaceCollection("w_refresh_token")
-  case User          extends WorkspaceCollection("w_user")
+import xauth.core.domain.event.model.Event.WorkspaceEvent
+import xauth.core.domain.workspace.model.Workspace
+import zio.Task
+
+/**
+ * Defines the event publish operations.
+ * todo: support specific cases like the account creation and messaging
+ */
+trait WorkspaceEventPublisher:
+
+  /** Publishes the given event on the system bus. */
+  infix def publish(e: WorkspaceEvent)(using w: Workspace): Task[Unit]
+
+  /** Publishes all the events on the system bus. */
+  infix def publish(s: Seq[WorkspaceEvent])(using w: Workspace): Task[Unit]

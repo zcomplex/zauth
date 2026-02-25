@@ -33,9 +33,12 @@ import xauth.api.jwt.JwtHelper
 import xauth.api.model.auth.*
 import xauth.api.model.ziojson.auth.given
 import xauth.api.security.{ClientContext, ClientCredentials}
-import xauth.core.common.model.AccessId
+import xauth.core.common.model.{AccessId, AuthType}
 import xauth.core.common.model.AuthStatus.Enabled
-import xauth.core.domain.auth.port.{AccessAttemptService, RefreshTokenService}
+import xauth.core.domain.auth.port.{AccessAttemptService, AccessLogService, RefreshTokenService}
+import xauth.core.domain.event.model.Event
+import xauth.core.domain.event.model.Event.WorkspaceEvent
+import xauth.core.domain.event.port.WorkspaceEventService
 import xauth.core.domain.user.port.UserService
 import xauth.core.domain.workspace.model.Workspace
 import zio.*
@@ -55,24 +58,9 @@ import zio.schema.{Schema, derived}
 
 sealed class AuthController extends AbstractController:
 
-  trait TokenError:
-    val message: String
-
-  private final case class InvalidPassword(override val message: String) extends TokenError
-  private final case class NotEnabledUser(override val message: String) extends TokenError
-  private final case class UserNotFound(override val message: String) extends TokenError
-  
 //  type JsError = Json
 //
 //  private final def err(m: String) = Json.obj("message" -> Json.fromString(m))
-
-
-  val res = TokenRs(
-    "tokenType",
-    "accessToken",
-    0,
-    "refreshToken"
-  )
 
 //  val intStringRequestHandler: Handler[(Int, String), Nothing, TokenRq, Response] =
 //    Handler.fromFunctionZIO[TokenRq] { (req: TokenRq) =>
@@ -114,11 +102,13 @@ sealed class AuthController extends AbstractController:
           given w: Workspace = c.workspace
 
           // todo: validation/json-schema validation
-          val effect = for
-            service <- ZIO.service[UserService]
-            attempts <- ZIO.service[AccessAttemptService]
-            refresh <- ZIO.service[RefreshTokenService]
+          for
+            accesses  <- ZIO.service[AccessLogService]
+            attempts  <- ZIO.service[AccessAttemptService]
+            events    <- ZIO.service[WorkspaceEventService]
             jwtHelper <- ZIO.service[JwtHelper]
+            refresh   <- ZIO.service[RefreshTokenService]
+            service   <- ZIO.service[UserService]
 
             json <- r
               .body.asString
@@ -158,29 +148,45 @@ sealed class AuthController extends AbstractController:
                         )
 
                     // saving refresh token
-                    _ <- refresh
-                      .save(token.refreshToken, u, c.client)
-                      .forkDaemon
+                    _ <- refresh.save(token.refreshToken, u, c.client).forkDaemon
 
                     // cleaning user authentication attempts
-                    _ <- attempts
-                      .cleanup(u)
-                      .forkDaemon
+                    _ <- attempts.cleanup(u).forkDaemon
+
+                    // storing access log
+                    _ <- accesses.save.forkDaemon // todo: migrate to event
+                    // publishing authentication-succeeded event 
+                    _ <- events.publishAndSave:
+                      WorkspaceEvent.authenticationSucceeded(u.id, body.username, AuthType.Username)
+
+                    // todo: notify event into system bus?
+                    // todo: store access log
 
                   yield Response.json(token.toJson)
-
-                  // todo: notify event into system bus?
-                  // todo: store access log
 
                 // access denied
                 else for
                   // storing login attempt
-                  _ <- attempts
+                  _ <- attempts // todo: store both used access id and secret
                     .save(u, c.client, AccessId(body.username), r.remoteAddress.map(_.toString) getOrElse "")
                     .catchAll: t =>
                       ZIO.logWarning(s"unable to save access attempt for user ${u.id}: ${t.getMessage}")
 
-// todo:                      
+                  f <- ZIO succeed InvalidCredentials
+
+                yield f
+
+              case Some(u) => // user is not enabled to obtain an access token
+                ZIO succeed Response.error(Forbidden, "auth.token:disabled", s"account is currently ${u.status.value.toLowerCase}")
+
+              case _ =>
+                ZIO succeed InvalidCredentials
+
+          yield response
+
+  val routes = Routes(authEnd, Token)
+
+// todo:
 //   progressive delay per identity
 //   IP rate limiting
 //   captcha after a lot of failed attempts
@@ -201,32 +207,11 @@ sealed class AuthController extends AbstractController:
 //                    ZIO.logWarning(s"unable to count access attempts for user ${user.id}: ${t.getMessage}")
 //                    0
 
-                  // reached the maximum failed access attempt, blocking user
+// reached the maximum failed access attempt, blocking user
 //                  _ <- ZIO
 //                    .when(n + 1 >= w.configuration.auth.maxLoginAttempts):
 //                      ZIO.logWarning(s"access attempt number $n for user ${body.username}")
 //                        *> service.updateStatusById(user.id, Blocked) // todo: no!
-                  
-                  // fail: invalid credentials
-//                  f <- ZIO fail InvalidCredentials
-                  f <- ZIO succeed InvalidCredentials
-
-                yield f
-
-              case Some(u) => // user is not enabled to obtain an access token
-                ZIO succeed Response.error(Forbidden, "auth.token:disabled", s"account is currently ${u.status.value.toLowerCase}")
-
-              case _ =>
-                ZIO succeed InvalidCredentials
-
-          yield response
-
-          val xxxx = effect
-//            .catchAll(_ => ZIO succeed Response.json(res.toJson))
-
-          xxxx
-  
-  val routes = Routes(authEnd, Token)
 
 object AuthController:
 

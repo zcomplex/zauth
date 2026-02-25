@@ -34,7 +34,7 @@ sealed trait AccessId:
 
 object AccessId:
   private type Contact = UserContact
-  private type Id = String | UserContact
+  type Id = String | Contact
 
   def apply(id: Id): AccessId =
     id match

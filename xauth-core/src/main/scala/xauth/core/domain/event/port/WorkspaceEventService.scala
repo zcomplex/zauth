@@ -23,17 +23,32 @@
  * This software is released under ZAuth License V1.
  * See LICENSE for full terms.
  */
-package xauth.infrastructure.mongo
+package xauth.core.domain.event.port
 
-import xauth.util.mongo.WorkspaceCollection as WCollection
+import xauth.core.domain.event.model.Event.WorkspaceEvent
+import xauth.core.domain.workspace.model.Workspace
+import xauth.util.Uuid
+import zio.Task
 
-/** Defines workspace persistence collections. */
-enum WorkspaceCollection(name: String) extends WCollection(name):
-  case AccessAttempt extends WorkspaceCollection("w_access_attempt")
-  case AccessLog     extends WorkspaceCollection("w_access_log")
-  case Client        extends WorkspaceCollection("w_client")
-  case Code          extends WorkspaceCollection("w_code")
-  case Event         extends WorkspaceCollection("w_event")
-  case Invitation    extends WorkspaceCollection("w_invitation")
-  case RefreshToken  extends WorkspaceCollection("w_refresh_token")
-  case User          extends WorkspaceCollection("w_user")
+trait WorkspaceEventService:
+
+  /** Performs the cleanup of all events from the persistence system. */
+  infix def cleanup(using w: Workspace): Task[Int]
+
+  /** Finds the event by its identifier. */
+  infix def find(id: Uuid)(using w: Workspace): Task[Option[WorkspaceEvent]]
+
+  /** Finds all events related to the same aggregate identifier. */
+  infix def findByAggregateId(id: Uuid)(using w: Workspace): Task[Seq[WorkspaceEvent]]
+  
+  /** Publishes the event on the system bus, without persist it. */
+  infix def publish(e: WorkspaceEvent)(using w: Workspace): Task[Unit]
+
+  /** Publishes all events on the system bus, without persist them. */
+  infix def publish(e: Seq[WorkspaceEvent])(using w: Workspace): Task[Unit]
+
+  /** Publishes and saves the given event. */
+  infix def publishAndSave(e: WorkspaceEvent)(using w: Workspace): Task[Unit]
+
+  /** Publishes and saves all events into the sequence. */
+  infix def publishAndSave(s: Seq[WorkspaceEvent])(using w: Workspace): Task[Unit]
